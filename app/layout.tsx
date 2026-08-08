@@ -17,7 +17,8 @@ const instrumentSerif = Instrument_Serif({
 
 export const metadata: Metadata = {
   title: "Zense",
-  description: "Zense",
+  description:
+    "Tanya-tanya gejala. Dapat jawaban pola hidup. Bukan diagnosis — panduan konkret untuk hari-harimu.",
 };
 
 export default function RootLayout({
@@ -26,10 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
-      <body className={`${inter.variable} ${instrumentSerif.variable} antialiased`}>
-        {children}
-      </body>
+    <html lang="id" className={`${inter.variable} ${instrumentSerif.variable}`}>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }
