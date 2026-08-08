@@ -11,6 +11,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { AnalyzeSection } from "../components/analyze-section";
 
 type Bezier = [number, number, number, number];
 
@@ -44,6 +45,7 @@ export default function Page() {
         <main>
           <Hero />
           <TrustStrip />
+          <AnalyzeSection />
           <Features />
           <HowItWorks />
           <ClosingCta />
