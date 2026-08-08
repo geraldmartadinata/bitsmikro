@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { motion, MotionConfig, type Variants } from "framer-motion";
 import {
-  Activity,
   ArrowRight,
   ChevronDown,
   HeartPulse,
   ListChecks,
   Stethoscope,
 } from "lucide-react";
-import { Button } from "../components/ui/button";
-import { AnalyzeSection } from "../components/analyze-section";
+import { Navbar } from "../components/navbar";
+import { Footer } from "../components/footer";
 
 type Bezier = [number, number, number, number];
 
@@ -32,9 +32,8 @@ const staggerContainer = (stagger = 0.1): Variants => ({
   visible: { transition: { staggerChildren: stagger } },
 });
 
-function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-}
+const primaryLinkClasses =
+  "inline-flex items-center justify-center gap-2 rounded-md bg-terracotta px-6 py-3 text-base font-medium text-white shadow-sm transition-[background-color,box-shadow] duration-200 hover:bg-terracotta-hover hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta";
 
 export default function Page() {
   return (
@@ -45,7 +44,6 @@ export default function Page() {
         <main>
           <Hero />
           <TrustStrip />
-          <AnalyzeSection />
           <Features />
           <HowItWorks />
           <ClosingCta />
@@ -55,70 +53,6 @@ export default function Page() {
         <Footer />
       </div>
     </MotionConfig>
-  );
-}
-
-/* ------------------------------ Navbar ------------------------------ */
-
-const NAV_LINKS = [
-  { label: "Fitur", href: "fitur" },
-  { label: "Cara Kerja", href: "cara-kerja" },
-  { label: "Tentang", href: "tentang" },
-];
-
-function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  return (
-    <div className="fixed left-1/2 top-4 z-50 w-full max-w-5xl -translate-x-1/2 px-4 sm:px-6">
-      <motion.nav
-        initial={{ y: -24, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: EASE }}
-        className={`flex h-14 items-center justify-between gap-3 rounded-full border px-4 backdrop-blur-md transition-[background-color,box-shadow,border-color] duration-300 sm:px-6 ${
-          scrolled
-            ? "border-hairline bg-cream/95 shadow-[0_6px_24px_rgba(42,43,47,0.12)]"
-            : "border-hairline bg-cream/85 shadow-[0_4px_20px_rgba(42,43,47,0.08)]"
-        } hover:border-terracotta/40`}
-      >
-        <button
-          onClick={() => scrollToId("hero")}
-          className="flex items-center gap-2.5"
-          aria-label="Zense - ke atas"
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-terracotta text-cream">
-            <Activity className="h-5 w-5" />
-          </span>
-          <span className="font-display text-xl tracking-tight">Zense</span>
-        </button>
-
-        <nav className="hidden items-center gap-7 md:flex">
-          {NAV_LINKS.map((link) => (
-            <a
-              key={link.href}
-              href={`#${link.href}`}
-              className="relative text-sm font-medium text-muted transition-colors after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-terracotta after:transition-transform after:duration-200 hover:text-ink hover:after:scale-x-100"
-            >
-              {link.label}
-            </a>
-          ))}
-        </nav>
-
-        <Button
-          onClick={() => scrollToId("analyze")}
-          className="rounded-full px-5 py-2 text-sm"
-        >
-          Coba Sekarang
-        </Button>
-      </motion.nav>
-    </div>
   );
 }
 
@@ -172,13 +106,10 @@ function Hero() {
           variants={fadeUp(0.3)}
           className="mt-8 flex flex-col items-center gap-3 sm:flex-row"
         >
-          <Button
-            onClick={() => scrollToId("analyze")}
-            className="rounded-md px-6 py-3 text-base"
-          >
+          <Link href="/analyze" className={primaryLinkClasses}>
             Analisis Gejalaku
             <ArrowRight className="h-4 w-4" />
-          </Button>
+          </Link>
           <a
             href="#cara-kerja"
             className="inline-flex w-full items-center justify-center gap-2 rounded-md px-6 py-3 text-base font-medium text-cream/90 transition-colors hover:bg-white/10 hover:text-cream sm:w-auto"
@@ -188,53 +119,27 @@ function Hero() {
         </motion.div>
 
         <motion.div variants={fadeUp(0.4)} className="mt-14 w-full max-w-2xl">
-          <HeroPreview />
+          <HeroAnalyzeCta />
         </motion.div>
       </div>
     </motion.section>
   );
 }
 
-function TypingDots() {
+function HeroAnalyzeCta() {
   return (
-    <span className="inline-flex items-center gap-1" aria-hidden="true">
-      {[0, 1, 2].map((i) => (
-        <motion.span
-          key={i}
-          className="h-1.5 w-1.5 rounded-full bg-cream/70"
-          animate={{ opacity: [0.25, 1, 0.25] }}
-          transition={{ duration: 1, repeat: Infinity, delay: i * 0.2, ease: "easeInOut" }}
-        />
-      ))}
-    </span>
-  );
-}
-
-function HeroPreview() {
-  return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-black/25 p-5 text-left shadow-xl backdrop-blur-sm">
-      <div className="mb-4 flex items-center gap-2 text-cream/60">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-terracotta" />
-        <span className="text-xs font-medium tracking-wide uppercase">
-          Analisis hasil
-        </span>
-      </div>
-
-      <div className="flex items-center gap-3 rounded-md border border-white/10 bg-white/5 px-3.5 py-2.5">
-        <span className="min-w-0 flex-1 truncate text-sm text-cream/75">
-          Akhir-akhir ini gampang capek dan susah fokus…
-        </span>
-        <TypingDots />
-      </div>
-
-      <div className="mt-4 flex animate-pulse flex-col gap-3">
-        <div className="h-4 w-2/3 rounded-md bg-white/15" />
-        <div className="h-4 w-1/2 rounded-md bg-white/15" />
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <div className="h-16 rounded-md bg-white/10" />
-          <div className="h-16 rounded-md bg-white/10" />
-        </div>
-      </div>
+    <div className="card-surface flex flex-col items-center gap-3 rounded-xl p-8 text-center">
+      <p className="font-display text-2xl text-ink sm:text-3xl">
+        Mulai analisis sekarang
+      </p>
+      <p className="max-w-sm text-sm text-muted">
+        Ceritakan gejalamu, dapatkan panduan pola hidup yang bisa langsung
+        kamu mulai.
+      </p>
+      <Link href="/analyze" className={`${primaryLinkClasses} mt-2`}>
+        Coba Sekarang
+        <ArrowRight className="h-4 w-4" />
+      </Link>
     </div>
   );
 }
@@ -442,13 +347,10 @@ function ClosingCta() {
           Cerita 30 detik. Semua data tetap di perangkatmu.
         </motion.p>
         <motion.div variants={fadeUp(0)} className="mt-8">
-          <Button
-            onClick={() => scrollToId("analyze")}
-            className="rounded-md px-6 py-3 text-base"
-          >
+          <Link href="/analyze" className={primaryLinkClasses}>
             Coba Analisis Gejalaku
             <ArrowRight className="h-4 w-4" />
-          </Button>
+          </Link>
         </motion.div>
       </div>
     </motion.section>
@@ -536,73 +438,5 @@ function Faq() {
         })}
       </div>
     </motion.section>
-  );
-}
-
-/* ------------------------------ Footer ------------------------------ */
-
-const footerColumns = [
-  {
-    heading: "Fitur",
-    links: ["Analisis Gejala", "Plan 7 Hari", "Find Partner"],
-  },
-  {
-    heading: "Perusahaan",
-    links: ["Tentang", "Cara Kerja"],
-  },
-  {
-    heading: "Legal",
-    links: ["Kebijakan Privasi", "Syarat Layanan"],
-  },
-];
-
-function Footer() {
-  return (
-    <footer className="border-t border-hairline bg-[#faf8f1]">
-      <div className="mx-auto max-w-6xl px-5 pb-6 pt-14 sm:px-6">
-        <div className="grid grid-cols-2 gap-10 md:grid-cols-4">
-          <div className="col-span-2 flex flex-col gap-3 md:col-span-1">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-terracotta text-cream">
-                <Activity className="h-4 w-4" />
-              </span>
-              <span className="font-display text-lg">Zense</span>
-            </div>
-            <p className="font-display text-sm italic text-muted">
-              Pendamping kesehatan pribadimu
-            </p>
-          </div>
-
-          {footerColumns.map((col) => (
-            <div key={col.heading} className="flex flex-col gap-3">
-              <h4 className="text-xs font-medium uppercase tracking-widest text-muted">
-                {col.heading}
-              </h4>
-              {col.links.map((link) => (
-                <a
-                  key={link}
-                  href="#"
-                  className="text-sm text-ink/80 transition-colors hover:text-terracotta"
-                >
-                  {link}
-                </a>
-              ))}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-12 border-t border-hairline pt-6">
-          <p className="mx-auto max-w-3xl text-center text-xs leading-relaxed text-muted">
-            Zense adalah alat edukasi pola hidup — bukan pengganti diagnosis
-            atau saran medis profesional. Untuk kondisi serius atau
-            berkelanjutan, konsultasikan dengan tenaga kesehatan.
-          </p>
-          <p className="mt-4 text-center text-xs text-muted">
-            © 2026 Zense · Tim &quot;.&quot; untuk Bitsmikro Innovative Vibecode
-            2026
-          </p>
-        </div>
-      </div>
-    </footer>
   );
 }
