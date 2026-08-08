@@ -45,3 +45,6 @@ next-env.d.ts
 
 # local dev screenshots (submission screenshots live in screenshot/)
 /shots/
+
+# server / dev logs
+*.log

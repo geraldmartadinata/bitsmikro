@@ -1,7 +1,0 @@
-Analyze route failed Error: AI_API_KEY is required when AI_PROVIDER=openai-compatible
-    at p.analyze (D:\project\comps\bitsmikro\app\.next\server\chunks\_10b5gsp._.js:12:1268)
-    at c (D:\project\comps\bitsmikro\app\.next\server\chunks\_10b5gsp._.js:12:2538)
-    at h (D:\project\comps\bitsmikro\app\.next\server\chunks\_10b5gsp._.js:12:2964)
-    at async X (D:\project\comps\bitsmikro\app\.next\server\chunks\_10b5gsp._.js:12:6254)
-    at async W (D:\project\comps\bitsmikro\app\.next\server\chunks\_10b5gsp._.js:12:7332)
-    at async Module.v [as handler] (D:\project\comps\bitsmikro\app\.next\server\chunks\_10b5gsp._.js:12:9389)
