@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { History, Sparkles } from "lucide-react";
-import { analyzeSymptoms } from "../lib/ai";
 import { isRedFlag } from "../lib/redflag";
 import type { AnalysisResult } from "../types/analysis";
 import { Button } from "./ui/button";
@@ -54,6 +53,7 @@ export function AnalyzeSection() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fellBack, setFellBack] = useState(false);
   const [stage, setStage] = useState(0);
   const [history, setHistory] = useState<HistoryEntry[]>(() => {
     if (typeof window === "undefined") return [];
@@ -106,6 +106,7 @@ export function AnalyzeSection() {
     if (isRedFlag(text)) {
       const r = buildRedFlagResult();
       setResult(r);
+      setFellBack(false);
       setLoading(false);
       saveHistory({ input: text, result: r, timestamp: Date.now() });
       scrollToResults();
@@ -115,14 +116,30 @@ export function AnalyzeSection() {
     setLoading(true);
     setStage(0);
     setResult(null);
+    setFellBack(false);
     try {
-      const analysis = await analyzeSymptoms(text);
-      setResult(analysis);
-      saveHistory({ input: text, result: analysis, timestamp: Date.now() });
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: text }),
+      });
+      const data = (await response.json()) as {
+        ok: boolean;
+        result?: AnalysisResult;
+        error?: string;
+        fellBack?: boolean;
+      };
+      if (!data.ok || !data.result) {
+        setError(data.error ?? "Analisis gagal. Coba lagi dalam beberapa saat.");
+        return;
+      }
+      setFellBack(data.fellBack === true);
+      setResult(data.result);
+      saveHistory({ input: text, result: data.result, timestamp: Date.now() });
     } catch (err) {
       console.error("Analyze failed", err);
       setError(
-        "Terjadi kendala saat menganalisis. Coba lagi dalam beberapa saat.",
+        "Terjadi kendala saat menghubungi server. Coba lagi dalam beberapa saat.",
       );
     } finally {
       setLoading(false);
@@ -229,6 +246,12 @@ export function AnalyzeSection() {
           <div ref={resultsRef} className="scroll-mt-28">
             {!loading && result ? (
               <div className="flex flex-col gap-6">
+                {fellBack ? (
+                  <p className="text-xs text-muted">
+                    Analisis ini dihasilkan mode fallback karena model AI tidak
+                    tersedia saat ini.
+                  </p>
+                ) : null}
                 <ResultsView result={result} loading={false} />
                 {history.length > 0 ? <HistoryRow history={history} onPick={loadHistory} /> : null}
               </div>
