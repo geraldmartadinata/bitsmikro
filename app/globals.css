@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #faf6ee;
+  --color-ink: #2a2b2f;
+}
