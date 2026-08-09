@@ -274,6 +274,28 @@ function randomDelay(minMs: number, maxMs: number): number {
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/**
+ * A tiny module-level mutex serializing outbound AI calls. The free-tier
+ * Gemini quota (20 req/min) is a shared bucket — serializing our own
+ * requests (quick-answer card + analyze page + tests hitting the same
+ * route) prevents self-inflicted 429 bursts.
+ */
+let activeAiCall = 0;
+const queuedResolvers: Array<() => void> = [];
+async function withAiMutex<T>(fn: () => Promise<T>): Promise<T> {
+  if (activeAiCall >= 2) {
+    await new Promise<void>((resolve) => queuedResolvers.push(resolve));
+  }
+  activeAiCall++;
+  try {
+    return await fn();
+  } finally {
+    activeAiCall--;
+    // Release exactly one queued waiter for the freed slot.
+    queuedResolvers.shift()?.();
+  }
+}
+
 export class MockProvider implements AIProvider {
   private readonly delayRange: [number, number];
 
@@ -431,7 +453,13 @@ export function extractJson(content: string): unknown {
 }
 
 export class OpenAICompatibleProvider implements AIProvider {
+  private readonly maxRetries = 3;
+
   async analyze(input: string): Promise<AnalysisResult> {
+    return withAiMutex(() => this.#analyzeWithRetry(input));
+  }
+
+  async #analyzeWithRetry(input: string): Promise<AnalysisResult> {
     const apiKey = process.env.AI_API_KEY;
     const baseUrl = (process.env.AI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/$/, "");
     const model = process.env.AI_MODEL ?? "gpt-4o-mini";
@@ -440,37 +468,64 @@ export class OpenAICompatibleProvider implements AIProvider {
       throw new Error("AI_API_KEY is required when AI_PROVIDER=openai-compatible");
     }
 
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: input },
-        ],
-        temperature: 0.4,
-        // Ask the endpoint for strict JSON output (supported by Gemini's
-        // OpenAI-compatible API and OpenAI) — removes prose/markdown noise.
-        response_format: { type: "json_object" },
-      }),
-    });
+    // Free-tier Gemini throttles at 20 req/min (rolling window). When the
+    // 429 carries a Retry-After hint, wait ONLY if it is short (<=12s) —
+    // otherwise give up so a polite fallback to mock happens instead of
+    // burning the remaining quota on doomed retries.
+    let lastStatus = 0;
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      if (attempt > 0) {
+        await sleep(1200 * attempt * attempt); // 1.2s, 4.8s, 10.8s
+      }
 
-    if (!response.ok) {
-      throw new Error(`AI request failed with status ${response.status}`);
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: input },
+          ],
+          temperature: 0.4,
+          // Ask the endpoint for strict JSON output (supported by Gemini's
+          // OpenAI-compatible API and OpenAI) — removes prose/markdown noise.
+          response_format: { type: "json_object" },
+        }),
+      });
+
+      if (!response.ok) {
+        lastStatus = response.status;
+        if (response.status === 429) {
+          const retryAfter = Number(response.headers.get("Retry-After") ?? 0);
+          // Some providers send a short Retry-After hint (<=12s): wait and
+          // retry. Gemini free-tier sends NO header with a ~60s window, so
+          // fall back to mock immediately instead of burning quota.
+          if (retryAfter > 0 && retryAfter <= 12 && attempt < this.maxRetries) {
+            await sleep(retryAfter * 1000 + 250);
+            continue;
+          }
+          throw new Error("AI request failed with status 429 (quota window busy)");
+        }
+        const retryable = response.status >= 500;
+        if (retryable && attempt < this.maxRetries) continue;
+        throw new Error(`AI request failed with status ${response.status}`);
+      }
+
+      const payload = (await response.json()) as {
+        choices?: { message?: { content?: string } }[];
+      };
+      const content = payload?.choices?.[0]?.message?.content;
+      if (!content) {
+        throw new Error("AI request returned no content");
+      }
+      return parseAnalysisResult(extractJson(content));
     }
 
-    const payload = (await response.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const content = payload?.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error("AI request returned no content");
-    }
-    return parseAnalysisResult(extractJson(content));
+    throw new Error(`AI request failed with status ${lastStatus}`);
   }
 }
 

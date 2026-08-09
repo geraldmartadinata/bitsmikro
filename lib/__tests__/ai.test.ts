@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { analyzeSymptoms, createProvider, MockProvider, extractJson } from "../ai";
+import {
+  analyzeSymptoms,
+  createProvider,
+  extractJson,
+  MockProvider,
+  OpenAICompatibleProvider,
+} from "../ai";
 import { isRedFlag } from "../redflag";
 
 afterEach(() => {
@@ -97,6 +103,88 @@ describe("MockProvider determinism", () => {
     delete process.env.AI_PROVIDER;
     expect(createProvider("mock")).toBeInstanceOf(MockProvider);
     expect(createProvider("unknown-provider")).toBeInstanceOf(MockProvider);
+  });
+});
+
+describe("OpenAICompatibleProvider retry", () => {
+  const VALID_BODY = {
+    choices: [
+      {
+        message: {
+          content: JSON.stringify({
+            summary: "s",
+            factors: [
+              {
+                id: "f1",
+                name: "Faktor",
+                impact: "medium",
+                reasoning: "r",
+                suggestion: "s",
+              },
+            ],
+            prioritizedActions: [
+              { action: "a", reason: "r", priority: 1 },
+            ],
+            disclaimer: "d",
+          }),
+        },
+      },
+    ],
+  };
+
+  it("falls back immediately on 429 (no Retry-After header)", async () => {
+    process.env.AI_API_KEY = "test-key";
+    let callCount = 0;
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      callCount++;
+      return new Response("rate limited", { status: 429 });
+    }));
+
+    const provider = new OpenAICompatibleProvider();
+    await expect(provider.analyze("gampang capek")).rejects.toThrow(/429/);
+    expect(callCount).toBe(1);
+    vi.unstubAllGlobals();
+  });
+
+  it("waits for a short Retry-After hint then succeeds", async () => {
+    process.env.AI_API_KEY = "test-key";
+    const calls: number[] = [];
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      calls.push(1);
+      if (calls.length === 1) {
+        return new Response("rate limited", {
+          status: 429,
+          headers: { "Retry-After": "1" },
+        });
+      }
+      return new Response(JSON.stringify(VALID_BODY), { status: 200 });
+    }));
+
+    const provider = new OpenAICompatibleProvider();
+    const result = await provider.analyze("gampang capek");
+    expect(result.summary).toBe("s");
+    expect(calls.length).toBe(2);
+    vi.unstubAllGlobals();
+  });
+
+  it("does NOT retry on a 400 error", async () => {
+    process.env.AI_API_KEY = "test-key";
+    let callCount = 0;
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      callCount++;
+      return new Response("bad request", { status: 400 });
+    }));
+
+    const provider = new OpenAICompatibleProvider();
+    await expect(provider.analyze("skjfhas")).rejects.toThrow(/status 400/);
+    expect(callCount).toBe(1);
+    vi.unstubAllGlobals();
+  });
+
+  it("throws when no API key is configured", async () => {
+    delete process.env.AI_API_KEY;
+    const provider = new OpenAICompatibleProvider();
+    await expect(provider.analyze("tes")).rejects.toThrow(/AI_API_KEY/);
   });
 });
 

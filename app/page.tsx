@@ -137,7 +137,7 @@ function TrustStrip() {
         <span className="hidden sm:inline-block" aria-hidden="true">
           ·
         </span>
-        <span>Data tetap di perangkatmu</span>
+        <span>Tanpa akun</span>
         <span className="hidden sm:inline-block" aria-hidden="true">
           ·
         </span>
@@ -327,7 +327,7 @@ function ClosingCta() {
           Mulai analisis sekarang
         </motion.h2>
         <motion.p variants={fadeUp(0)} className="mt-4 text-cream/70">
-          Cerita 30 detik. Semua data tetap di perangkatmu.
+          Cerita 30 detik. Langkah kecil yang bisa langsung kamu mulai.
         </motion.p>
         <motion.div variants={fadeUp(0)} className="mt-8">
           <Link href="/analyze" className={primaryLinkClasses}>
@@ -348,20 +348,16 @@ const faqs = [
     a: "Tidak. Zense hanya menghubungkan gejala dengan pola hidup dan memberi panduan umum. Konsultasi dengan tenaga kesehatan untuk diagnosis.",
   },
   {
-    q: "Apakah data saya aman?",
-    a: "Ya. Semua data tersimpan di perangkatmu (localStorage). Tidak dikirim ke server, tidak butuh akun.",
-  },
-  {
     q: "Apakah Zense gratis?",
     a: "Gratis. Tanpa biaya, tanpa langganan.",
   },
   {
     q: "Apakah partner Zense manusia sungguhan?",
-    a: "Saat ini partner adalah pendamping (AI persona) yang tersimpan di perangkatmu. Fitur untuk terhubung dengan teman sungguhan sedang kami kembangkan.",
+    a: "Saat ini partner adalah pendamping AI (persona). Fitur untuk terhubung dengan teman sungguhan sedang kami kembangkan.",
   },
   {
     q: "Siapa di balik Zense?",
-    a: "Zense dikembangkan oleh Tim '.' untuk Bitsmikro Innovative Vibecode 2026.",
+    a: "Zense dikembangkan oleh Tim . untuk Bitsmikro Innovative Vibecode 2026.",
   },
 ];
 

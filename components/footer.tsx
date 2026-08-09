@@ -29,7 +29,7 @@ export function Footer() {
               </span>
               <span className="font-display text-lg">Zense</span>
             </div>
-            <p className="font-display text-sm italic text-muted">
+            <p className="text-sm text-muted">
               Pendamping kesehatan pribadimu
             </p>
           </div>
@@ -59,7 +59,7 @@ export function Footer() {
             berkelanjutan, konsultasikan dengan tenaga kesehatan.
           </p>
           <p className="mt-4 text-center text-xs text-muted">
-            © 2026 Zense · Tim &quot;.&quot; untuk Bitsmikro Innovative Vibecode
+            © 2026 Zense · Tim . untuk Bitsmikro Innovative Vibecode
             2026
           </p>
         </div>
