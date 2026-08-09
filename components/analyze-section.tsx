@@ -48,8 +48,8 @@ function buildRedFlagResult(): AnalysisResult {
   };
 }
 
-export function AnalyzeSection() {
-  const [input, setInput] = useState("");
+export function AnalyzeSection({ initialText }: { initialText?: string }) {
+  const [input, setInput] = useState(initialText ?? "");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +76,14 @@ export function AnalyzeSection() {
     }, 2000);
     return () => window.clearInterval(id);
   }, [loading]);
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q");
+    const value = q ?? initialText ?? "";
+    if (!value) return;
+    const id = window.setTimeout(() => setInput(value), 0);
+    return () => window.clearTimeout(id);
+  }, [initialText]);
 
   function saveHistory(entry: HistoryEntry) {
     const next = [entry, ...history.filter((h) => h.input !== entry.input)].slice(0, MAX_HISTORY);

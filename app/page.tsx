@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "../components/navbar";
 import { Footer } from "../components/footer";
+import { QuickAnswerCard } from "../components/quick-answer";
 
 type Bezier = [number, number, number, number];
 
@@ -118,29 +119,11 @@ function Hero() {
           </a>
         </motion.div>
 
-        <motion.div variants={fadeUp(0.4)} className="mt-14 w-full max-w-2xl">
-          <HeroAnalyzeCta />
+        <motion.div variants={fadeUp(0.4)} className="mt-12 w-full max-w-2xl">
+          <QuickAnswerCard />
         </motion.div>
       </div>
     </motion.section>
-  );
-}
-
-function HeroAnalyzeCta() {
-  return (
-    <div className="card-surface flex flex-col items-center gap-3 rounded-xl p-8 text-center">
-      <p className="font-display text-2xl text-ink sm:text-3xl">
-        Mulai analisis sekarang
-      </p>
-      <p className="max-w-sm text-sm text-muted">
-        Ceritakan gejalamu, dapatkan panduan pola hidup yang bisa langsung
-        kamu mulai.
-      </p>
-      <Link href="/analyze" className={`${primaryLinkClasses} mt-2`}>
-        Coba Sekarang
-        <ArrowRight className="h-4 w-4" />
-      </Link>
-    </div>
   );
 }
 
