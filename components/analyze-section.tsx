@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { History, Sparkles } from "lucide-react";
 import { isRedFlag } from "../lib/redflag";
+import { buildSevenDayPlan } from "../lib/plan";
 import type { AnalysisResult } from "../types/analysis";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { ResultsView } from "./results-view";
+import { PlanSection } from "./plan-section";
 
 const CHIPS = [
   { label: "Sulit tidur", text: "Akhir-akhir ini saya sulit tidur dan sering terbangun tengah malam" },
@@ -261,6 +263,12 @@ export function AnalyzeSection({ initialText }: { initialText?: string }) {
                   </p>
                 ) : null}
                 <ResultsView result={result} loading={false} />
+                {!result.redFlag && result.prioritizedActions.length > 0 ? (
+                  <PlanSection
+                    plan={buildSevenDayPlan(result.prioritizedActions)}
+                    actions={result.prioritizedActions}
+                  />
+                ) : null}
                 {history.length > 0 ? <HistoryRow history={history} onPick={loadHistory} /> : null}
               </div>
             ) : null}
