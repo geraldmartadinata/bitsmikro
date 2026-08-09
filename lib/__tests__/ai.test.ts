@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  _resetKeyRotationForTests,
   analyzeSymptoms,
   createProvider,
   extractJson,
@@ -11,6 +12,7 @@ import { isRedFlag } from "../redflag";
 afterEach(() => {
   delete process.env.AI_PROVIDER;
   delete process.env.AI_API_KEY;
+  _resetKeyRotationForTests();
   vi.restoreAllMocks();
 });
 
@@ -178,6 +180,30 @@ describe("OpenAICompatibleProvider retry", () => {
     const provider = new OpenAICompatibleProvider();
     await expect(provider.analyze("skjfhas")).rejects.toThrow(/status 400/);
     expect(callCount).toBe(1);
+    vi.unstubAllGlobals();
+  });
+
+  it("rotates between multiple comma-separated keys", async () => {
+    process.env.AI_API_KEY = "key-aaa,key-bbb";
+    const auths: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        const headers = init?.headers as Record<string, string> | undefined;
+        auths.push(headers?.["Authorization"] ?? "");
+        return new Response(JSON.stringify(VALID_BODY), { status: 200 });
+      }),
+    );
+
+    const provider = new OpenAICompatibleProvider();
+    await provider.analyze("pertama");
+    await provider.analyze("kedua");
+    await provider.analyze("ketiga");
+    expect(auths).toEqual([
+      "Bearer key-aaa",
+      "Bearer key-bbb",
+      "Bearer key-aaa",
+    ]);
     vi.unstubAllGlobals();
   });
 

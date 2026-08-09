@@ -275,9 +275,27 @@ function randomDelay(minMs: number, maxMs: number): number {
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
+ * Rotating key pool: AI_API_KEY may hold one key or several comma-separated
+ * keys. Each Gemini free-tier key carries its own 20 req/min quota, so N
+ * keys => N× the headroom. Rotation is round-robin per request.
+ */
+let keyRotationIndex = 0;
+function nextApiKey(pool: string[]): string {
+  if (pool.length === 0) throw new Error("AI_API_KEY is required");
+  const key = pool[keyRotationIndex % pool.length];
+  keyRotationIndex++;
+  return key;
+}
+
+/** Test-only hook: resets the round-robin cursor (determinism in suites). */
+export function _resetKeyRotationForTests(): void {
+  keyRotationIndex = 0;
+}
+
+/**
  * A tiny module-level mutex serializing outbound AI calls. The free-tier
- * Gemini quota (20 req/min) is a shared bucket — serializing our own
- * requests (quick-answer card + analyze page + tests hitting the same
+ * Gemini quota (20 req/min per key) is a shared bucket — serializing our
+ * own requests (quick-answer card + analyze page + tests hitting the same
  * route) prevents self-inflicted 429 bursts.
  */
 let activeAiCall = 0;
@@ -460,7 +478,12 @@ export class OpenAICompatibleProvider implements AIProvider {
   }
 
   async #analyzeWithRetry(input: string): Promise<AnalysisResult> {
-    const apiKey = process.env.AI_API_KEY;
+    const rawKeys = (process.env.AI_API_KEY ?? "").trim();
+    const keyPool = rawKeys
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean);
+    const apiKey = nextApiKey(keyPool);
     const baseUrl = (process.env.AI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/$/, "");
     const model = process.env.AI_MODEL ?? "gpt-4o-mini";
 
