@@ -216,7 +216,7 @@ const mockScenarioFallback: AnalysisResult = {
       priority: 2,
     },
     {
-      action: "Rapkan jadwal makan & menu",
+      action: "Rapikan jadwal dan menu makan",
       reason: "Pola makan teratur memberi energi yang stabil menuju malam.",
       priority: 3,
     },
@@ -239,6 +239,9 @@ const TIRED_KEYWORDS = [
   "fatigue",
   "ngantuk",
   "kurang tidur",
+  "sulit tidur",
+  "susah tidur",
+  "insomnia",
   "sulit fokus",
 ];
 const DIZZY_KEYWORDS = [

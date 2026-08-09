@@ -1,4 +1,5 @@
 import { Activity } from "lucide-react";
+import { Reveal } from "./ui/reveal";
 
 const footerColumns = [
   {
@@ -18,7 +19,7 @@ const footerColumns = [
 export function Footer() {
   return (
     <footer className="border-t border-hairline bg-[#faf8f1]">
-      <div className="mx-auto max-w-6xl px-5 pb-6 pt-14 sm:px-6">
+      <Reveal className="mx-auto max-w-6xl px-5 pb-6 pt-14 sm:px-6">
         <div className="grid grid-cols-2 gap-10 md:grid-cols-4">
           <div className="col-span-2 flex flex-col gap-3 md:col-span-1">
             <div className="flex items-center gap-2.5">
@@ -61,7 +62,7 @@ export function Footer() {
             2026
           </p>
         </div>
-      </div>
+      </Reveal>
     </footer>
   );
 }

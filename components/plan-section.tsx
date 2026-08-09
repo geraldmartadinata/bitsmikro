@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, type Variants } from "framer-motion";
-import { Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { Check, HeartPulse, PartyPopper, X } from "lucide-react";
 import { loadPlanProgress, savePlanProgress, type PlanDay } from "../lib/plan";
 import type { PrioritizedAction } from "../types/analysis";
 
 const EASE: [number, number, number, number] = [0.4, 0, 0.2, 1];
 
+const springTransition = { type: "spring", stiffness: 100, damping: 15 } as const;
+
 const itemVariant = {
   hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
+  visible: { opacity: 1, y: 0, transition: springTransition },
 } satisfies Variants;
 
 export function PlanSection({
@@ -41,6 +44,22 @@ export function PlanSection({
   const pct = totalSteps > 0 ? Math.round((checkedSteps / totalSteps) * 100) : 0;
   const done = totalSteps > 0 && checkedSteps === totalSteps;
 
+  const shouldReduceMotion = useReducedMotion();
+  const [progressWidth, setProgressWidth] = useState(0);
+  const [showCongrats, setShowCongrats] = useState(false);
+  const wasDone = useRef(false);
+
+  useEffect(() => {
+    if (done && !wasDone.current) {
+      setShowCongrats(true);
+    }
+    wasDone.current = done;
+  }, [done]);
+
+  useEffect(() => {
+    setProgressWidth(pct);
+  }, [pct]);
+
   function isDayDone(day: PlanDay): boolean {
     if (day.actionIds.length === 0) return false;
     const checked = progress[day.id] ?? [];
@@ -59,10 +78,10 @@ export function PlanSection({
 
   return (
     <motion.div
-      initial="hidden"
-      whileInView="visible"
+      initial={shouldReduceMotion ? false : "hidden"}
+      whileInView={shouldReduceMotion ? undefined : "visible"}
       viewport={{ once: true, amount: 0.05 }}
-      variants={{
+      variants={shouldReduceMotion ? undefined : {
         hidden: {},
         visible: { transition: { staggerChildren: 0.06 } },
       }}
@@ -85,7 +104,7 @@ export function PlanSection({
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-ink/5">
           <div
             className="h-full rounded-full bg-sage transition-all duration-500"
-            style={{ width: `${pct}%` }}
+            style={{ width: `${shouldReduceMotion ? pct : progressWidth}%` }}
           />
         </div>
       </div>
@@ -162,6 +181,80 @@ export function PlanSection({
           );
         })}
       </ol>
+
+      <AnimatePresence>
+        {showCongrats && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
+            initial={shouldReduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+            onClick={() => setShowCongrats(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="congrats-title"
+          >
+            <motion.div
+              initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.85, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={shouldReduceMotion ? undefined : { opacity: 0, scale: 0.9, y: 12 }}
+              transition={shouldReduceMotion ? undefined : { type: "spring", stiffness: 220, damping: 22 }}
+              className="card-surface relative w-full max-w-sm rounded-lg p-6 text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setShowCongrats(false)}
+                aria-label="Tutup"
+                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/5 hover:text-ink"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <motion.div
+                initial={shouldReduceMotion ? false : { scale: 0, rotate: -12 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={
+                  shouldReduceMotion
+                    ? undefined
+                    : { type: "spring", stiffness: 260, damping: 14, delay: 0.1 }
+                }
+                className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sage/10 text-sage"
+              >
+                <PartyPopper className="h-8 w-8" />
+              </motion.div>
+
+              <h3
+                id="congrats-title"
+                className="font-display text-2xl text-ink"
+              >
+                Selamat! 🎉
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">
+                Kamu menyelesaikan <span className="font-semibold text-ink">Plan 7 Hari</span> —{" "}
+                {totalSteps} langkah konsisten. Kebiasaan kecil yang kamu jaga
+                seminggu ini sudah jadi modal besar.
+              </p>
+
+              <div className="mt-4 flex items-center justify-center gap-1.5 text-sage">
+                <HeartPulse className="h-4 w-4" />
+                <span className="text-xs font-medium">
+                  {pct}% konsistensi · lanjutkan kebiasaanmu
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowCongrats(false)}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-sage px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-sage/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage"
+              >
+                <Check className="h-4 w-4" />
+                Lanjutkan
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

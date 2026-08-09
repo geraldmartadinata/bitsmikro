@@ -1,16 +1,31 @@
 "use client";
 
 import Link from "next/link";
+import { useReducedMotion } from "framer-motion";
 import { motion, type Variants } from "framer-motion";
 import { lastMessageOf, loadChats, PERSONAS } from "../lib/partner";
 import { loadGroupMessages } from "../lib/group";
 
+const MotionLink = motion(Link);
+
 const EASE: [number, number, number, number] = [0.4, 0, 0.2, 1];
+
+const springTransition = { type: "spring", stiffness: 100, damping: 15 } as const;
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
 } satisfies Variants;
+
+const cardHover = {
+  scale: 1.02,
+  transition: springTransition,
+};
+
+const cardPress = {
+  scale: 0.98,
+  transition: { duration: 0.1 },
+};
 
 const COLOR_CIRCLE: Record<string, string> = {
   sage: "bg-sage/10 text-sage",
@@ -29,12 +44,17 @@ export function PartnerInbox() {
   const groupLast = lastMessageOf(groupMessages);
   const recommended = PERSONAS.filter((p) => (chats[p.id]?.length ?? 0) === 0);
 
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <motion.div
       className="mx-auto max-w-2xl px-5 sm:px-6"
-      initial="hidden"
-      animate="visible"
-      variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
+      initial={shouldReduceMotion ? false : "hidden"}
+      animate={shouldReduceMotion ? false : "visible"}
+      variants={shouldReduceMotion ? undefined : {
+        hidden: {},
+        visible: { transition: { staggerChildren: 0.08 } },
+      }}
     >
       <motion.div variants={fadeUp} className="mb-8 text-center">
         <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
@@ -44,9 +64,11 @@ export function PartnerInbox() {
       </motion.div>
 
       <motion.div variants={fadeUp} className="card-surface divide-y divide-hairline overflow-hidden rounded-md">
-        <Link
+        <MotionLink
           href="/group"
-          className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-[background-color,transform] duration-200 hover:bg-surface active:scale-[0.98]"
+          className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
+          whileHover={shouldReduceMotion ? undefined : cardHover}
+          whileTap={shouldReduceMotion ? undefined : cardPress}
         >
           <span className="flex -space-x-2 shrink-0">
             {PERSONAS.map((p) => (
@@ -72,15 +94,17 @@ export function PartnerInbox() {
               {groupLast ? groupLast.text : "Mulai obrolan grup…"}
             </p>
           </div>
-        </Link>
+        </MotionLink>
 
         {PERSONAS.map((p) => {
           const last = lastMessageOf(chats[p.id] ?? []);
           return (
-            <Link
+            <MotionLink
               key={p.id}
               href={`/partner/${p.id}`}
-              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-[background-color,transform] duration-200 hover:bg-surface active:scale-[0.98]"
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
+              whileHover={shouldReduceMotion ? undefined : cardHover}
+              whileTap={shouldReduceMotion ? undefined : cardPress}
             >
               <span
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl ${COLOR_CIRCLE[p.color] ?? COLOR_CIRCLE.ink}`}
@@ -100,7 +124,7 @@ export function PartnerInbox() {
                   {last ? last.text : "Mulai obrolan…"}
                 </p>
               </div>
-            </Link>
+            </MotionLink>
           );
         })}
       </motion.div>
@@ -112,10 +136,12 @@ export function PartnerInbox() {
           </h3>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {recommended.map((p) => (
-              <Link
+              <MotionLink
                 key={p.id}
                 href={`/partner/${p.id}`}
-                className="card-surface group flex items-center gap-3 rounded-md p-4 transition-transform duration-200 active:scale-[0.98]"
+                className="card-surface group flex items-center gap-3 rounded-md p-4"
+                whileHover={shouldReduceMotion ? undefined : cardHover}
+                whileTap={shouldReduceMotion ? undefined : cardPress}
               >
                 <span
                   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl ${COLOR_CIRCLE[p.color] ?? COLOR_CIRCLE.ink}`}
@@ -129,7 +155,7 @@ export function PartnerInbox() {
                 <span className="shrink-0 rounded-full border border-hairline bg-surface px-3.5 py-1.5 text-xs font-medium text-ink transition-colors group-hover:border-terracotta group-hover:text-terracotta">
                   Mulai
                 </span>
-              </Link>
+              </MotionLink>
             ))}
           </div>
         </motion.div>

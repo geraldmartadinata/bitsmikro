@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
 const faqs = [
@@ -22,24 +23,58 @@ const faqs = [
   },
 ];
 
+const EASE: [number, number, number, number] = [0.4, 0, 0.2, 1];
+
+const stagger: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
+};
+
 export function Faq() {
   const [open, setOpen] = useState<number | null>(0);
+  const shouldReduceMotion = useReducedMotion();
 
   return (
     <section id="faq" className="mx-auto max-w-3xl px-5 py-20 sm:px-6 sm:py-28">
-      <div className="mb-10 text-center">
-        <h2 className="font-display text-4xl tracking-tight sm:text-5xl">
+      <motion.div
+        initial={shouldReduceMotion ? false : "hidden"}
+        whileInView={shouldReduceMotion ? undefined : "visible"}
+        viewport={{ once: true, amount: 0.3 }}
+        variants={shouldReduceMotion ? undefined : stagger}
+        className="mb-10 text-center"
+      >
+        <motion.h2
+          variants={shouldReduceMotion ? undefined : fadeUp}
+          className="font-display text-4xl tracking-tight sm:text-5xl"
+        >
           Tanya dulu
-        </h2>
-        <p className="mt-3 text-muted">Pertanyaan yang sering muncul sebelum mulai.</p>
-      </div>
+        </motion.h2>
+        <motion.p
+          variants={shouldReduceMotion ? undefined : fadeUp}
+          className="mt-3 text-muted"
+        >
+          Pertanyaan yang sering muncul sebelum mulai.
+        </motion.p>
+      </motion.div>
 
-      <div className="flex flex-col gap-3">
+      <motion.div
+        initial={shouldReduceMotion ? false : "hidden"}
+        whileInView={shouldReduceMotion ? undefined : "visible"}
+        viewport={{ once: true, amount: 0.1 }}
+        variants={shouldReduceMotion ? undefined : stagger}
+        className="flex flex-col gap-3"
+      >
         {faqs.map((item, i) => {
           const isOpen = open === i;
           return (
-            <div
+            <motion.div
               key={item.q}
+              variants={shouldReduceMotion ? undefined : fadeUp}
               className="overflow-hidden rounded-md border border-hairline bg-surface transition-colors duration-200 hover:border-terracotta/30"
             >
               <button
@@ -70,10 +105,10 @@ export function Faq() {
                   </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </section>
   );
 }

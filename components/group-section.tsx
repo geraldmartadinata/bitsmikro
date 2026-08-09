@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useReducedMotion } from "framer-motion";
 import { motion, type Variants } from "framer-motion";
 import { ArrowLeft, Send, Users } from "lucide-react";
 import {
@@ -19,10 +20,22 @@ import { Input } from "./ui/input";
 
 const EASE: [number, number, number, number] = [0.4, 0, 0.2, 1];
 
+const springTransition = { type: "spring", stiffness: 100, damping: 15 } as const;
+
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
 } satisfies Variants;
+
+const cardHover = {
+  scale: 1.02,
+  transition: springTransition,
+};
+
+const cardPress = {
+  scale: 0.98,
+  transition: { duration: 0.1 },
+};
 
 const COLOR_CIRCLE: Record<string, string> = {
   sage: "bg-sage/10 text-sage",
@@ -44,6 +57,8 @@ export function GroupSection() {
   const [input, setInput] = useState("");
   const [typingId, setTypingId] = useState<string | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
+
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -145,9 +160,12 @@ export function GroupSection() {
   return (
     <motion.section
       className="mx-auto max-w-2xl px-5 py-16 sm:px-6 sm:py-20"
-      initial="hidden"
-      animate="visible"
-      variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
+      initial={shouldReduceMotion ? false : "hidden"}
+      animate={shouldReduceMotion ? false : "visible"}
+      variants={shouldReduceMotion ? undefined : {
+        hidden: {},
+        visible: { transition: { staggerChildren: 0.08 } },
+      }}
     >
       <motion.div variants={fadeUp} className="mb-4 flex items-center justify-between">
         <Link
@@ -276,15 +294,17 @@ export function GroupSection() {
             className="rounded-full"
             aria-label="Pesan grup"
           />
-          <button
+          <motion.button
             type="button"
             onClick={send}
             disabled={typingId !== null || input.trim().length === 0}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-terracotta text-white transition-[background-color,transform] hover:bg-terracotta-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-terracotta text-white"
+            whileHover={shouldReduceMotion ? undefined : { scale: 1.05, transition: springTransition }}
+            whileTap={shouldReduceMotion ? undefined : { scale: 0.95, transition: { duration: 0.1 } }}
             aria-label="Kirim pesan grup"
           >
             <Send className="h-4 w-4" />
-          </button>
+          </motion.button>
         </div>
       </motion.div>
     </motion.section>

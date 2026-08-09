@@ -1,5 +1,6 @@
 "use client";
 
+import { useReducedMotion } from "framer-motion";
 import { motion, type Variants } from "framer-motion";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 import type { AnalysisResult, Severity } from "../types/analysis";
@@ -18,6 +19,8 @@ const impactLabel: Record<Severity, string> = {
   high: "Tinggi",
 };
 
+const springTransition = { type: "spring", stiffness: 100, damping: 15 } as const;
+
 const factorsStagger = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.15 } },
@@ -25,7 +28,7 @@ const factorsStagger = {
 
 const factorItem = {
   hidden: { opacity: 0, x: -20 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: EASE } },
+  visible: { opacity: 1, x: 0, transition: springTransition },
 } satisfies Variants;
 
 const actionsStagger = {
@@ -35,7 +38,7 @@ const actionsStagger = {
 
 const actionItem = {
   hidden: { opacity: 0, scale: 0.95 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: EASE } },
+  visible: { opacity: 1, scale: 1, transition: springTransition },
 } satisfies Variants;
 
 export function ResultsView({
@@ -45,6 +48,7 @@ export function ResultsView({
   result: AnalysisResult | null;
   loading: boolean;
 }) {
+  const shouldReduceMotion = useReducedMotion();
   if (loading) {
     return (
       <div className="flex flex-col gap-4" aria-live="polite">
@@ -70,8 +74,8 @@ export function ResultsView({
     <motion.div
       className="flex flex-col gap-6"
       aria-live="polite"
-      initial="hidden"
-      animate="visible"
+      initial={shouldReduceMotion ? false : "hidden"}
+      animate={shouldReduceMotion ? false : "visible"}
     >
       {result.redFlag ? <RedFlagCard result={result} /> : null}
 
@@ -93,11 +97,13 @@ export function ResultsView({
 }
 
 function RedFlagCard({ result }: { result: AnalysisResult }) {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: EASE }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: -8 }}
+      animate={shouldReduceMotion ? false : { opacity: 1, y: 0 }}
+      transition={shouldReduceMotion ? undefined : { duration: 0.5, ease: EASE }}
       className="flex flex-col gap-2 rounded-md border border-danger bg-danger/5 p-5"
     >
       <div className="flex items-center gap-2 font-semibold text-danger">
@@ -117,11 +123,13 @@ function RedFlagCard({ result }: { result: AnalysisResult }) {
 }
 
 function SummaryCard({ result }: { result: AnalysisResult }) {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: EASE }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+      animate={shouldReduceMotion ? false : { opacity: 1, y: 0 }}
+      transition={shouldReduceMotion ? undefined : { duration: 0.6, ease: EASE }}
       className="rounded-r-md border-l-4 border-terracotta bg-surface p-5"
     >
       <p className="text-base leading-relaxed text-ink">{result.summary}</p>
@@ -130,6 +138,8 @@ function SummaryCard({ result }: { result: AnalysisResult }) {
 }
 
 function FactorList({ result }: { result: AnalysisResult }) {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <div>
       <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
@@ -137,8 +147,8 @@ function FactorList({ result }: { result: AnalysisResult }) {
       </h3>
       <motion.ol
         variants={factorsStagger}
-        initial="hidden"
-        animate="visible"
+        initial={shouldReduceMotion ? false : "hidden"}
+        animate={shouldReduceMotion ? false : "visible"}
         className="grid gap-4 sm:grid-cols-2"
       >
         {result.factors.map((factor) => (
@@ -170,6 +180,8 @@ function FactorList({ result }: { result: AnalysisResult }) {
 }
 
 function ActionsList({ result }: { result: AnalysisResult }) {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <div>
       <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
@@ -177,8 +189,8 @@ function ActionsList({ result }: { result: AnalysisResult }) {
       </h3>
       <motion.ol
         variants={actionsStagger}
-        initial="hidden"
-        animate="visible"
+        initial={shouldReduceMotion ? false : "hidden"}
+        animate={shouldReduceMotion ? false : "visible"}
         className="flex flex-col gap-3"
       >
         {result.prioritizedActions.map((action, i) => (
