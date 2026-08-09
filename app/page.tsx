@@ -47,6 +47,7 @@ export default function Page() {
           <TrustStrip />
           <Features />
           <HowItWorks />
+          <PartnerTeaser />
           <ClosingCta />
           <Faq />
         </main>
@@ -302,6 +303,40 @@ function HowItWorks() {
             </motion.div>
           ))}
         </div>
+      </div>
+    </motion.section>
+  );
+}
+
+/* --------------------------- Partner teaser ------------------------- */
+
+function PartnerTeaser() {
+  return (
+    <motion.section
+      id="partner"
+      className="border-b border-hairline bg-[#faf8f1]"
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.3 }}
+      variants={staggerContainer(0.1)}
+    >
+      <div className="mx-auto flex max-w-3xl flex-col items-center px-5 py-20 text-center sm:px-6 sm:py-24">
+        <motion.h2
+          variants={fadeUp(0)}
+          className="font-display text-4xl tracking-tight sm:text-5xl"
+        >
+          Tidak sendirian lagi
+        </motion.h2>
+        <motion.p variants={fadeUp(0)} className="mt-4 max-w-xl text-muted">
+          Dapatkan pendamping AI yang punya fokus kesehatan sama, saling
+          semangat tiap hari, dan check-in bareng di grup kecil.
+        </motion.p>
+        <motion.div variants={fadeUp(0)} className="mt-8">
+          <Link href="/partner" className={primaryLinkClasses}>
+            Temukan Pendamping
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </motion.div>
       </div>
     </motion.section>
   );
