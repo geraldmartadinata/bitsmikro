@@ -1,6 +1,6 @@
 # Zense — AI-Powered Health Symptom Analyzer
 
-> **Bitsmikro Innovative Vibecode 2026** — Submission by Tim **"."** (Gerald Martadinata + 2 anggota)
+> **Bitsmikro Innovative Vibecode 2026** — Submission by Tim **.** (Gerald Martadinata + 2 anggota)
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fgeraldmartadinata%2Fbitsmikro)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
