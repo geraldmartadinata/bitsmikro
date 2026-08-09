@@ -8,6 +8,7 @@ import { isRedFlag } from "../lib/redflag";
 import type { AnalysisResult } from "../types/analysis";
 
 const MIN_CHARS = 10;
+const QUICK_RESULT_KEY = "zense_quick_result";
 
 const CHIPS = [
   {
@@ -102,6 +103,16 @@ export function QuickAnswerCard() {
         setFellBack(data.fellBack === true);
       }
       setAsked(text);
+      if (data.fellBack !== true) {
+        try {
+          window.sessionStorage.setItem(
+            QUICK_RESULT_KEY,
+            JSON.stringify({ input: text, result: data.result, at: Date.now() }),
+          );
+        } catch {
+          /* storage unavailable — ignore */
+        }
+      }
     } catch {
       setError("Terjadi kendala saat menghubungi server. Coba lagi.");
     } finally {

@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Activity } from "lucide-react";
 
 const EASE: [number, number, number, number] = [0.4, 0, 0.2, 1];
 
 const NAV_LINKS = [
-  { label: "Fitur", href: "/#fitur" },
-  { label: "Cara Kerja", href: "/#cara-kerja" },
-  { label: "Tentang", href: "/#tentang" },
+  { label: "Beranda", href: "/" },
+  { label: "Analisis", href: "/analyze" },
+  { label: "Partner", href: "/partner" },
 ];
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -47,15 +49,22 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="relative text-sm font-medium text-muted transition-colors after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-terracotta after:transition-transform after:duration-200 hover:text-ink hover:after:scale-x-100"
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const active =
+              link.href !== "/" && pathname.startsWith(link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={`relative text-sm font-medium transition-colors after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-terracotta after:transition-transform after:duration-200 hover:text-ink hover:after:scale-x-100 ${
+                  active ? "text-ink after:scale-x-100" : "text-muted"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <Link

@@ -5,6 +5,7 @@ import {
   loadPartnerState,
   PARTNER_STORAGE_KEY,
   PERSONAS,
+  recommendPersona,
   replyFor,
   saveGroupCheckin,
   savePartnerState,
@@ -103,5 +104,37 @@ describe("partner state storage", () => {
     expect(loadGroupCheckin()).toBe(4);
     store.set(GROUP_STORAGE_KEY, "not-a-number");
     expect(loadGroupCheckin()).toBe(0);
+  });
+});
+
+describe("recommendPersona", () => {
+  it("maps a high-impact sleep factor to Bima", () => {
+    const persona = recommendPersona([{ id: "sleep", impact: "high" }]);
+    expect(persona.id).toBe("bima");
+  });
+
+  it("maps a hydration factor to Danu and diet to Sinta", () => {
+    expect(recommendPersona([{ id: "hydration", impact: "medium" }]).id).toBe("danu");
+    expect(recommendPersona([{ id: "diet", impact: "medium" }]).id).toBe("sinta");
+  });
+
+  it("picks the highest-impact factor deterministically", () => {
+    const persona = recommendPersona([
+      { id: "diet", impact: "low" },
+      { id: "sleep", impact: "high" },
+      { id: "hydration", impact: "medium" },
+    ]);
+    expect(persona.id).toBe("bima");
+  });
+
+  it("defaults to Rara for unknown or empty factors", () => {
+    expect(recommendPersona([{ id: "mystery", impact: "high" }]).id).toBe("rara");
+    expect(recommendPersona([]).id).toBe("rara");
+  });
+
+  it("always returns one of the defined personas", () => {
+    const ids = PERSONAS.map((p) => p.id);
+    expect(ids).toContain(recommendPersona([]).id);
+    expect(ids).toContain(recommendPersona([{ id: "stress", impact: "high" }]).id);
   });
 });

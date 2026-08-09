@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { History, Sparkles } from "lucide-react";
 import { isRedFlag } from "../lib/redflag";
 import { buildSevenDayPlan } from "../lib/plan";
+import { recommendPersona } from "../lib/partner";
 import type { AnalysisResult } from "../types/analysis";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
@@ -28,6 +30,27 @@ const HISTORY_KEY = "zense_history";
 const MAX_HISTORY = 5;
 const MIN_CHARS = 10;
 const MAX_CHARS = 500;
+const QUICK_RESULT_KEY = "zense_quick_result";
+const QUICK_RESULT_TTL_MS = 15 * 60 * 1000;
+
+function restoreQuickResult(q: string): AnalysisResult | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(QUICK_RESULT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      input?: string;
+      result?: AnalysisResult;
+      at?: number;
+    };
+    if (parsed.input !== q) return null;
+    if (!parsed.result || typeof parsed.at !== "number") return null;
+    if (Date.now() - parsed.at > QUICK_RESULT_TTL_MS) return null;
+    return parsed.result;
+  } catch {
+    return null;
+  }
+}
 
 interface HistoryEntry {
   input: string;
@@ -83,7 +106,14 @@ export function AnalyzeSection({ initialText }: { initialText?: string }) {
     const q = new URLSearchParams(window.location.search).get("q");
     const value = q ?? initialText ?? "";
     if (!value) return;
-    const id = window.setTimeout(() => setInput(value), 0);
+    const id = window.setTimeout(() => {
+      const restored = restoreQuickResult(value);
+      setInput(value);
+      if (restored) {
+        setResult(restored);
+        setFellBack(false);
+      }
+    }, 0);
     return () => window.clearTimeout(id);
   }, [initialText]);
 
@@ -269,6 +299,7 @@ export function AnalyzeSection({ initialText }: { initialText?: string }) {
                     actions={result.prioritizedActions}
                   />
                 ) : null}
+                {!result.redFlag ? <PersonaSuggestion result={result} /> : null}
                 {history.length > 0 ? <HistoryRow history={history} onPick={loadHistory} /> : null}
               </div>
             ) : null}
@@ -276,6 +307,30 @@ export function AnalyzeSection({ initialText }: { initialText?: string }) {
         </motion.div>
       </div>
     </section>
+  );
+}
+
+function PersonaSuggestion({ result }: { result: AnalysisResult }) {
+  const persona = recommendPersona(
+    result.factors.map((f) => ({ id: f.id, impact: f.impact })),
+  );
+  return (
+    <div className="card-surface flex flex-col items-start gap-3 rounded-md p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-1">
+        <p className="font-semibold text-ink">
+          Lanjut bareng {persona.name} — {persona.tagline}
+        </p>
+        <p className="text-sm text-muted">
+          Mulai obrolan singkat dan pertahankan semangatmu.
+        </p>
+      </div>
+      <Link
+        href="/partner"
+        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-terracotta px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-[background-color,box-shadow] duration-200 hover:bg-terracotta-hover hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta"
+      >
+        Ngobrol dengan {persona.name}
+      </Link>
+    </div>
   );
 }
 

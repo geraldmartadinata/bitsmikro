@@ -1,3 +1,5 @@
+import type { Severity } from "../types/analysis";
+
 export type Energy = "high" | "calm" | "fun";
 
 export interface Persona {
@@ -151,6 +153,41 @@ export function replyFor(text: string, personaId: string): PartnerReply {
 
 export function personaGreeting(personaId: string): string {
   return replyFor("halo", personaId).text;
+}
+
+const FACTOR_PERSONA: Record<string, string> = {
+  sleep: "bima",
+  tidur: "bima",
+  diet: "sinta",
+  nutrition: "sinta",
+  makanan: "sinta",
+  "meal-schedule": "sinta",
+  caffeine: "sinta",
+  stress: "rara",
+  capek: "rara",
+  lelah: "rara",
+  energy: "rara",
+  "screen-time": "rara",
+  hydration: "danu",
+  hidrasi: "danu",
+};
+
+const IMPACT_ORDER: Record<Severity, number> = { high: 3, medium: 2, low: 1 };
+
+export function recommendPersona(
+  factors: { id: string; impact: Severity }[],
+): Persona {
+  let best: { id: string; impact: Severity } | null = null;
+  for (const factor of factors) {
+    if (
+      best === null ||
+      IMPACT_ORDER[factor.impact] > IMPACT_ORDER[best.impact]
+    ) {
+      best = factor;
+    }
+  }
+  const personaId = best ? FACTOR_PERSONA[best.id] ?? "rara" : "rara";
+  return PERSONAS.find((p) => p.id === personaId) ?? PERSONAS[0];
 }
 
 const DEFAULT_STATE: PartnerState = { personaId: null, chat: [], streak: 0 };
