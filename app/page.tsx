@@ -328,7 +328,7 @@ function PartnerTeaser() {
           Tidak sendirian lagi
         </motion.h2>
         <motion.p variants={fadeUp(0)} className="mt-4 max-w-xl text-muted">
-          Dapatkan pendamping AI yang punya fokus kesehatan sama, saling
+          Dapatkan pendamping yang punya fokus kesehatan sama, saling
           semangat tiap hari, dan check-in bareng di grup kecil.
         </motion.p>
         <motion.div variants={fadeUp(0)} className="mt-8">
@@ -348,13 +348,20 @@ function ClosingCta() {
   return (
     <motion.section
       id="tentang"
-      className="bg-[#1d1e21] text-cream"
+      className="relative overflow-hidden bg-[#1d1e21] text-cream"
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, amount: 0.3 }}
       variants={staggerContainer(0.1)}
     >
-      <div className="mx-auto flex max-w-3xl flex-col items-center px-5 py-20 text-center sm:px-6 sm:py-28">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/images/cta-analyze.webp')" }}
+      />
+      <div aria-hidden="true" className="absolute inset-0 bg-black/60" />
+
+      <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-5 py-20 text-center sm:px-6 sm:py-28">
         <motion.h2
           variants={fadeUp(0)}
           className="font-display text-4xl tracking-tight sm:text-5xl"
@@ -388,7 +395,7 @@ const faqs = [
   },
   {
     q: "Apakah partner Zense manusia sungguhan?",
-    a: "Saat ini partner adalah pendamping AI (persona). Fitur untuk terhubung dengan teman sungguhan sedang kami kembangkan.",
+    a: "Saat ini partner adalah pendamping terdekatmu. Fitur untuk terhubung dengan teman sungguhan sedang kami kembangkan.",
   },
   {
     q: "Siapa di balik Zense?",

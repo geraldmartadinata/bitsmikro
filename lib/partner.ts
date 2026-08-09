@@ -19,9 +19,9 @@ export interface ChatMessage {
 }
 
 export interface PartnerState {
-  personaId: string | null;
-  chat: ChatMessage[];
+  chats: Record<string, ChatMessage[]>;
   streak: number;
+  activeId: string | null;
 }
 
 export interface PartnerReply {
@@ -190,33 +190,68 @@ export function recommendPersona(
   return PERSONAS.find((p) => p.id === personaId) ?? PERSONAS[0];
 }
 
-const DEFAULT_STATE: PartnerState = { personaId: null, chat: [], streak: 0 };
+const EMPTY_STATE: PartnerState = { chats: {}, streak: 0, activeId: null };
+
+function isChatMessage(m: unknown): m is ChatMessage {
+  if (typeof m !== "object" || m === null) return false;
+  const c = m as Record<string, unknown>;
+  return (
+    (c.from === "user" || c.from === "persona") &&
+    typeof c.text === "string" &&
+    typeof c.at === "number"
+  );
+}
+
+export function lastMessageOf<T extends { at: number }>(chat: T[]): T | null {
+  if (chat.length === 0) return null;
+  return chat.reduce((latest, m) => (m.at >= latest.at ? m : latest), chat[0]);
+}
+
+export function hasChatted(state: PartnerState, personaId: string): boolean {
+  const chat = state.chats[personaId];
+  return !!chat && chat.length > 0;
+}
 
 export function loadPartnerState(): PartnerState {
-  if (typeof window === "undefined") return { ...DEFAULT_STATE };
+  if (typeof window === "undefined") return { ...EMPTY_STATE };
   try {
     const raw = window.localStorage.getItem(PARTNER_STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_STATE };
+    if (!raw) return { ...EMPTY_STATE };
     const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) return { ...DEFAULT_STATE };
+    if (typeof parsed !== "object" || parsed === null) return { ...EMPTY_STATE };
     const p = parsed as Record<string, unknown>;
+    const streak = typeof p.streak === "number" && p.streak >= 0 ? p.streak : 0;
+
+    // New shape: { chats, streak, activeId }
+    if (typeof p.chats === "object" && p.chats !== null) {
+      const chats: Record<string, ChatMessage[]> = {};
+      const rawChats = p.chats as Record<string, unknown>;
+      for (const key of Object.keys(rawChats)) {
+        if (!PERSONAS.some((x) => x.id === key)) continue;
+        const arr = rawChats[key];
+        if (!Array.isArray(arr)) continue;
+        const chat = arr.filter(isChatMessage);
+        if (chat.length > 0) chats[key] = chat;
+      }
+      const activeId =
+        p.activeId === "group" || PERSONAS.some((x) => x.id === p.activeId)
+          ? (p.activeId as string)
+          : null;
+      return { chats, streak, activeId };
+    }
+
+    // Legacy shape: { personaId, chat, streak } — migrate to per-persona chats.
+    const legacyChat = Array.isArray(p.chat) ? p.chat.filter(isChatMessage) : [];
     const personaId = PERSONAS.some((x) => x.id === p.personaId)
       ? (p.personaId as string)
       : null;
-    const chat = Array.isArray(p.chat)
-      ? p.chat.filter(
-          (m): m is ChatMessage =>
-            typeof m === "object" &&
-            m !== null &&
-            typeof m.text === "string" &&
-            (m.from === "user" || m.from === "persona") &&
-            typeof m.at === "number",
-        )
-      : [];
-    const streak = typeof p.streak === "number" && p.streak >= 0 ? p.streak : 0;
-    return { personaId, chat, streak };
+    return {
+      chats: personaId && legacyChat.length > 0 ? { [personaId]: legacyChat } : {},
+      streak,
+      activeId: personaId,
+    };
   } catch {
-    return { ...DEFAULT_STATE };
+    return { ...EMPTY_STATE };
   }
 }
 

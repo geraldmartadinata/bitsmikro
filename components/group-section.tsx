@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
-import { Send, Users } from "lucide-react";
+import { ArrowLeft, Send, Users } from "lucide-react";
 import {
   chatReplyForGroup,
   GROUP_NAME,
@@ -148,6 +149,17 @@ export function GroupSection() {
       animate="visible"
       variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
     >
+      <motion.div variants={fadeUp} className="mb-4 flex items-center justify-between">
+        <Link
+          href="/partner"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-terracotta"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Semua chat
+        </Link>
+        <span className="text-[10px] text-muted">Grup</span>
+      </motion.div>
+
       <motion.div
         variants={fadeUp}
         className="card-surface flex flex-col items-center gap-3 rounded-md p-5 text-center"

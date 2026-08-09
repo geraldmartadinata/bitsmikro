@@ -1,6 +1,8 @@
 ﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   GROUP_STORAGE_KEY,
+  hasChatted,
+  lastMessageOf,
   loadGroupCheckin,
   loadPartnerState,
   PARTNER_STORAGE_KEY,
@@ -71,28 +73,81 @@ describe("partner state storage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("round-trips partner state under the partner storage key", () => {
+  it("round-trips the new per-persona shape under the partner storage key", () => {
     const state = {
-      personaId: "bima",
-      chat: [
-        { from: "persona" as const, text: "Halo!", at: 1 },
-        { from: "user" as const, text: "halo", at: 2 },
-      ],
+      chats: {
+        bima: [
+          { from: "persona" as const, text: "Halo!", at: 1 },
+          { from: "user" as const, text: "halo", at: 2 },
+        ],
+      },
       streak: 3,
+      activeId: "bima",
     };
     savePartnerState(state);
     expect(store.has(PARTNER_STORAGE_KEY)).toBe(true);
     expect(loadPartnerState()).toEqual(state);
   });
 
-  it("falls back to default on corrupt JSON", () => {
-    store.set(PARTNER_STORAGE_KEY, "{oops");
-    expect(loadPartnerState()).toEqual({ personaId: null, chat: [], streak: 0 });
+  it("migrates the legacy { personaId, chat, streak } shape to per-persona chats", () => {
+    store.set(
+      PARTNER_STORAGE_KEY,
+      JSON.stringify({
+        personaId: "bima",
+        chat: [{ from: "user", text: "saya susah tidur", at: 10 }],
+        streak: 2,
+      }),
+    );
+    expect(loadPartnerState()).toEqual({
+      chats: { bima: [{ from: "user", text: "saya susah tidur", at: 10 }] },
+      streak: 2,
+      activeId: "bima",
+    });
   });
 
-  it("sanitizes an unknown personaId to null", () => {
+  it("keeps two personas' chats separate", () => {
+    const state = {
+      chats: {
+        rara: [{ from: "user" as const, text: "capek", at: 1 }],
+        bima: [{ from: "user" as const, text: "tidur", at: 2 }],
+      },
+      streak: 1,
+      activeId: "rara",
+    };
+    savePartnerState(state);
+    const loaded = loadPartnerState();
+    expect(loaded.chats.rara).toEqual(state.chats.rara);
+    expect(loaded.chats.bima).toEqual(state.chats.bima);
+    expect(loaded.chats.bima).not.toEqual(state.chats.rara);
+  });
+
+  it("falls back to default on corrupt JSON or unknown shape", () => {
+    store.set(PARTNER_STORAGE_KEY, "{oops");
+    expect(loadPartnerState()).toEqual({ chats: {}, streak: 0, activeId: null });
     store.set(PARTNER_STORAGE_KEY, JSON.stringify({ personaId: "ghost", chat: [], streak: 0 }));
-    expect(loadPartnerState().personaId).toBeNull();
+    expect(loadPartnerState()).toEqual({ chats: {}, streak: 0, activeId: null });
+  });
+
+  it("sanitizes chats to known personas and valid messages", () => {
+    store.set(
+      PARTNER_STORAGE_KEY,
+      JSON.stringify({
+        chats: {
+          ghost: [{ from: "user", text: "x", at: 1 }],
+          bima: [
+            { from: "user", text: "y", at: 2 },
+            { from: "robot", text: "z", at: 3 },
+            "nonsense",
+          ],
+        },
+        streak: 0,
+        activeId: "ghost",
+      }),
+    );
+    const loaded = loadPartnerState();
+    expect(loaded.chats.ghost).toBeUndefined();
+    expect(loaded.chats.bima).toEqual([{ from: "user", text: "y", at: 2 }]);
+    expect(loaded.activeId).toBeNull();
   });
 
   it("group check-in clamps between 0 and 4 and round-trips", () => {
@@ -104,6 +159,32 @@ describe("partner state storage", () => {
     expect(loadGroupCheckin()).toBe(4);
     store.set(GROUP_STORAGE_KEY, "not-a-number");
     expect(loadGroupCheckin()).toBe(0);
+  });
+});
+
+describe("lastMessageOf & hasChatted", () => {
+  it("lastMessageOf returns the newest message by timestamp", () => {
+    const chat = [
+      { from: "persona" as const, text: "pertama", at: 100 },
+      { from: "user" as const, text: "terbaru", at: 300 },
+      { from: "persona" as const, text: "tengah", at: 200 },
+    ];
+    expect(lastMessageOf(chat)?.text).toBe("terbaru");
+  });
+
+  it("lastMessageOf returns null for an empty chat", () => {
+    expect(lastMessageOf([])).toBeNull();
+  });
+
+  it("hasChatted is true only for personas with messages", () => {
+    const state = {
+      chats: { bima: [{ from: "user" as const, text: "halo", at: 1 }] },
+      streak: 0,
+      activeId: null,
+    };
+    expect(hasChatted(state, "bima")).toBe(true);
+    expect(hasChatted(state, "rara")).toBe(false);
+    expect(hasChatted({ chats: {}, streak: 0, activeId: null }, "bima")).toBe(false);
   });
 });
 
