@@ -372,14 +372,62 @@ function parseAnalysisResult(raw: unknown): AnalysisResult {
   return result;
 }
 
-function extractJson(content: string): unknown {
+export function extractJson(content: string): unknown {
   const cleaned = content.replace(/```json|```/g, "").trim();
+
+  // Fast path: the model was asked for strict JSON — try parsing as-is.
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // fall through to brace-scan extraction
+  }
+
+  // Balanced-brace scan that respects strings and escape sequences.
   const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end === -1 || end < start) {
+  if (start === -1) {
     throw new Error("Invalid AI response: no JSON object found");
   }
-  return JSON.parse(cleaned.slice(start, end + 1));
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  let end = -1;
+
+  for (let i = start; i < cleaned.length; i++) {
+    const ch = cleaned[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === "{") {
+      depth++;
+    } else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        end = i;
+        break;
+      }
+    }
+  }
+
+  if (end === -1) {
+    throw new Error("Invalid AI response: unbalanced JSON object");
+  }
+
+  const candidate = cleaned.slice(start, end + 1);
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    throw new Error("Invalid AI response: JSON object could not be parsed");
+  }
 }
 
 export class OpenAICompatibleProvider implements AIProvider {
@@ -405,6 +453,9 @@ export class OpenAICompatibleProvider implements AIProvider {
           { role: "user", content: input },
         ],
         temperature: 0.4,
+        // Ask the endpoint for strict JSON output (supported by Gemini's
+        // OpenAI-compatible API and OpenAI) — removes prose/markdown noise.
+        response_format: { type: "json_object" },
       }),
     });
 

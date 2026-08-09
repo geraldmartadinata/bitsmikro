@@ -41,7 +41,23 @@ const RED_FLAG_PATTERNS: readonly string[] = [
   "severe headache",
 ];
 
+/**
+ * Word-order tolerant patterns: "dada aku sakit", "dada sebelah kiri
+ * terasa sakit", "nyeri di dada" — the user rarely types the exact
+ * phrase. These catch chest-pain mentions with 0-4 words between the
+ * body part and the complaint word, in both orders.
+ */
+const RED_FLAG_REGEX: readonly RegExp[] = [
+  /\bdada(?:\s+\w+){0,4}\s+sakit\b/,
+  /\bsakit(?:\s+\w+){0,4}\s+dada\b/,
+  /\bdada(?:\s+\w+){0,4}\s+nyeri\b/,
+  /\bnyeri(?:\s+\w+){0,4}\s+dada\b/,
+];
+
 export function isRedFlag(input: string): boolean {
   const normalized = input.toLowerCase();
-  return RED_FLAG_PATTERNS.some((pattern) => normalized.includes(pattern));
+  return (
+    RED_FLAG_PATTERNS.some((pattern) => normalized.includes(pattern)) ||
+    RED_FLAG_REGEX.some((regex) => regex.test(normalized))
+  );
 }

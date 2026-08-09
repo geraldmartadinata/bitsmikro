@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { analyzeSymptoms, createProvider, MockProvider } from "../ai";
+import { analyzeSymptoms, createProvider, MockProvider, extractJson } from "../ai";
 import { isRedFlag } from "../redflag";
 
 afterEach(() => {
@@ -100,19 +100,58 @@ describe("MockProvider determinism", () => {
   });
 });
 
+describe("extractJson", () => {
+  it("parses a plain JSON object", () => {
+    expect(extractJson('{"summary":"x","factors":[]}')).toEqual({
+      summary: "x",
+      factors: [],
+    });
+  });
+
+  it("strips markdown code fences", () => {
+    expect(
+      extractJson('```json\n{"summary":"y","factors":[]}\n```'),
+    ).toEqual({ summary: "y", factors: [] });
+  });
+
+  it("extracts JSON from prose around it", () => {
+    expect(
+      extractJson('Ini hasilnya: {"summary":"z","factors":[]} — semoga membantu.'),
+    ).toEqual({ summary: "z", factors: [] });
+  });
+
+  it("handles braces inside string values", () => {
+    expect(
+      extractJson('{"summary":"pakai {kurung} siku","factors":[]}'),
+    ).toEqual({ summary: "pakai {kurung} siku", factors: [] });
+  });
+
+  it("throws when no JSON object exists", () => {
+    expect(() => extractJson("tidak ada json sama sekali")).toThrow();
+  });
+
+  it("throws on unbalanced JSON", () => {
+    expect(() => extractJson('{"summary":"x"')).toThrow();
+  });
+});
+
 describe("isRedFlag", () => {
   it.each([
-    "saya merasa sakit dada sebelah kiri",
-    "sesak napas ketika jalan kaki",
-    "lumpuh di satu sisi tubuh setelah bangun",
-    "saya pingsan tadi pagi",
-    "mulai merasakan bicara pelo",
-    "muntah darah setelah makan",
-    "kejang di rumah",
-    "shortness of breath",
-  ])("returns true for a serious input: %s", (input) => {
-    expect(isRedFlag(input)).toBe(true);
-  });
+      "saya merasa sakit dada sebelah kiri",
+      "dada aku sakit",
+      "dada sebelah kiriku terasa sakit sekali",
+      "nyeri di dada bagian atas",
+      "dada saya terasa nyeri sekarang",
+      "sesak napas ketika jalan kaki",
+      "lumpuh di satu sisi tubuh setelah bangun",
+      "saya pingsan tadi pagi",
+      "mulai merasakan bicara pelo",
+      "muntah darah setelah makan",
+      "kejang di rumah",
+      "shortness of breath",
+    ])("returns true for a serious input: %s", (input) => {
+      expect(isRedFlag(input)).toBe(true);
+    });
 
   it.each([
     "saya sering pusing kalau siang",

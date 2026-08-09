@@ -51,6 +51,7 @@ export function QuickAnswerCard() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<AnalysisResult | null>(null);
+  const [fellBack, setFellBack] = useState(false);
   const [redFlag, setRedFlag] = useState<{ message: string; emergency: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asked, setAsked] = useState("");
@@ -66,6 +67,7 @@ export function QuickAnswerCard() {
     setError(null);
     setAnswer(null);
     setRedFlag(null);
+    setFellBack(false);
 
     if (isRedFlag(text)) {
       setRedFlag({ message: RED_FLAG_MESSAGE, emergency: RED_FLAG_EMERGENCY });
@@ -84,6 +86,7 @@ export function QuickAnswerCard() {
         ok: boolean;
         result?: AnalysisResult;
         error?: string;
+        fellBack?: boolean;
       };
       if (!data.ok || !data.result) {
         setError(data.error ?? "Analisis gagal. Coba lagi.");
@@ -96,6 +99,7 @@ export function QuickAnswerCard() {
         });
       } else {
         setAnswer(data.result);
+        setFellBack(data.fellBack === true);
       }
       setAsked(text);
     } catch {
@@ -188,6 +192,12 @@ export function QuickAnswerCard() {
 
       {answer ? (
         <div className="mt-4 flex flex-col gap-3">
+          {fellBack ? (
+            <p className="text-[10px] text-cream/50">
+              Jawaban ini menggunakan mode cadangan karena model AI sedang
+              tidak tersedia.
+            </p>
+          ) : null}
           <p className="line-clamp-3 text-sm leading-relaxed text-cream/85">
             {answer.summary}
           </p>
