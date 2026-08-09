@@ -264,6 +264,34 @@ export function savePartnerState(state: PartnerState): void {
   }
 }
 
+export function loadChats(): Record<string, ChatMessage[]> {
+  return loadPartnerState().chats;
+}
+
+export function saveChats(chats: Record<string, ChatMessage[]>): void {
+  if (typeof window === "undefined") return;
+  try {
+    const existing = loadPartnerState();
+    savePartnerState({ ...existing, chats });
+  } catch {
+    /* storage unavailable — ignore */
+  }
+}
+
+export function loadStreak(): number {
+  return loadPartnerState().streak;
+}
+
+export function saveStreak(streak: number): void {
+  if (typeof window === "undefined") return;
+  try {
+    const existing = loadPartnerState();
+    savePartnerState({ ...existing, streak });
+  } catch {
+    /* storage unavailable — ignore */
+  }
+}
+
 export function loadGroupCheckin(): number {
   if (typeof window === "undefined") return 0;
   try {

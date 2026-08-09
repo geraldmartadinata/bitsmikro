@@ -1,9 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { MotionConfig } from "framer-motion";
 import { Footer } from "../../components/footer";
 import { Navbar } from "../../components/navbar";
-import { PartnerSection } from "../../components/partner-section";
+
+const PartnerInbox = dynamic(
+  () => import("../../components/partner-inbox").then((m) => m.PartnerInbox),
+  {
+    ssr: false,
+    loading: () => <p className="py-24 text-center text-sm text-muted">Memuat…</p>,
+  },
+);
 
 export default function PartnerPage() {
   return (
@@ -13,7 +21,7 @@ export default function PartnerPage() {
 
         <main>
           <div className="pt-16 sm:pt-20">
-            <PartnerSection />
+            <PartnerInbox />
           </div>
         </main>
 

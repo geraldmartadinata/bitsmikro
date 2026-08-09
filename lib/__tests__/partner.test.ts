@@ -3,14 +3,18 @@ import {
   GROUP_STORAGE_KEY,
   hasChatted,
   lastMessageOf,
+  loadChats,
   loadGroupCheckin,
   loadPartnerState,
+  loadStreak,
   PARTNER_STORAGE_KEY,
   PERSONAS,
   recommendPersona,
   replyFor,
+  saveChats,
   saveGroupCheckin,
   savePartnerState,
+  saveStreak,
 } from "../partner";
 
 describe("replyFor", () => {
@@ -159,6 +163,116 @@ describe("partner state storage", () => {
     expect(loadGroupCheckin()).toBe(4);
     store.set(GROUP_STORAGE_KEY, "not-a-number");
     expect(loadGroupCheckin()).toBe(0);
+  });
+});
+
+describe("loadChats / saveChats / loadStreak / saveStreak", () => {
+  const store = new Map<string, string>();
+
+  beforeEach(() => {
+    store.clear();
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => void store.set(k, v),
+        removeItem: (k: string) => void store.delete(k),
+      },
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("loadChats returns the chats portion of the new shape", () => {
+    savePartnerState({
+      chats: {
+        bima: [{ from: "user" as const, text: "tidur", at: 1 }],
+        sinta: [{ from: "persona" as const, text: "Hai!", at: 2 }],
+      },
+      streak: 4,
+      activeId: "bima",
+    });
+    expect(loadChats()).toEqual({
+      bima: [{ from: "user", text: "tidur", at: 1 }],
+      sinta: [{ from: "persona", text: "Hai!", at: 2 }],
+    });
+  });
+
+  it("loadChats migrates the legacy { personaId, chat } shape", () => {
+    store.set(
+      PARTNER_STORAGE_KEY,
+      JSON.stringify({
+        personaId: "bima",
+        chat: [{ from: "user", text: "saya susah tidur", at: 10 }],
+        streak: 2,
+      }),
+    );
+    expect(loadChats()).toEqual({
+      bima: [{ from: "user", text: "saya susah tidur", at: 10 }],
+    });
+  });
+
+  it("loadChats returns {} when empty or corrupt", () => {
+    expect(loadChats()).toEqual({});
+    store.set(PARTNER_STORAGE_KEY, "{oops");
+    expect(loadChats()).toEqual({});
+  });
+
+  it("saveChats updates chats without clobbering streak/activeId", () => {
+    savePartnerState({
+      chats: { rara: [{ from: "user" as const, text: "capek", at: 1 }] },
+      streak: 5,
+      activeId: "rara",
+    });
+    saveChats({
+      rara: [{ from: "user", text: "capek", at: 1 }],
+      bima: [{ from: "user", text: "tidur", at: 2 }],
+    });
+    const loaded = loadPartnerState();
+    expect(loaded.chats.bima).toEqual([{ from: "user", text: "tidur", at: 2 }]);
+    expect(loaded.chats.rara).toEqual([{ from: "user", text: "capek", at: 1 }]);
+    expect(loaded.streak).toBe(5);
+    expect(loaded.activeId).toBe("rara");
+  });
+
+  it("saveChats merges with chats already in storage", () => {
+    savePartnerState({
+      chats: { danu: [{ from: "user" as const, text: "gas", at: 1 }] },
+      streak: 0,
+      activeId: null,
+    });
+    saveChats({ danu: [{ from: "user", text: "gas", at: 1 }], bima: [{ from: "user", text: "tidur", at: 2 }] });
+    expect(loadChats().danu).toEqual([{ from: "user", text: "gas", at: 1 }]);
+  });
+
+  it("loadStreak reads the streak without touching chats", () => {
+    savePartnerState({
+      chats: { bima: [{ from: "user" as const, text: "x", at: 1 }] },
+      streak: 7,
+      activeId: null,
+    });
+    expect(loadStreak()).toBe(7);
+    expect(loadChats().bima).toEqual([{ from: "user", text: "x", at: 1 }]);
+  });
+
+  it("saveStreak updates streak without clobbering chats/activeId", () => {
+    savePartnerState({
+      chats: { bima: [{ from: "user" as const, text: "x", at: 1 }] },
+      streak: 1,
+      activeId: "bima",
+    });
+    saveStreak(2);
+    const loaded = loadPartnerState();
+    expect(loaded.streak).toBe(2);
+    expect(loaded.chats.bima).toEqual([{ from: "user", text: "x", at: 1 }]);
+    expect(loaded.activeId).toBe("bima");
+  });
+
+  it("loadStreak defaults to 0 on empty or corrupt storage", () => {
+    expect(loadStreak()).toBe(0);
+    store.set(PARTNER_STORAGE_KEY, "null");
+    expect(loadStreak()).toBe(0);
   });
 });
 
