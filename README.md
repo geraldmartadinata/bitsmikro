@@ -205,6 +205,8 @@ MIT License — bebas digunakan untuk pembelajaran & pengembangan lanjutan.
 
 - **Repo:** https://github.com/geraldmartadinata/bitsmikro
 - **Vercel Demo:** https://bitsmikro.vercel.app
+- **Video Demo:** https://drive.google.com/file/d/1JfhAd-Lmn0TrdqJ45TVXx5Tt7yD87_37/view?usp=drive_link
+- **Source Code:** https://drive.google.com/drive/folders/1dyjaPohOk4vWaasXMi5tEYUMNxczmC14?usp=drive_link
 
 ---
 
