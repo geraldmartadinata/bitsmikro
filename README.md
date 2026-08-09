@@ -189,9 +189,9 @@ zip -r zense-bitsmikro-2026.zip \
 ## 👥 Tim
 
 **Tim "."** (BINUS University)
-- **Gerald Martadinata** — Lead Developer (Architecture, AI, Full-stack)
-- **Anggota 2** — UI/UX, Testing
-- **Anggota 3** — Content, Documentation
+- **Gerald Samuel Martadinata** — Lead Developer
+- **Felicia Natania Rahardjo 2** — Project Manager and Pitcher
+- **Christian Darren Owen 3** — Subject Matter Expert and Documentation
 
 ---
 
@@ -204,10 +204,7 @@ MIT License — bebas digunakan untuk pembelajaran & pengembangan lanjutan.
 ## 🔗 Link Penting
 
 - **Repo:** https://github.com/geraldmartadinata/bitsmikro
-- **Vercel Demo:** (auto-deploy dari main branch)
-- **Laporan Teknis:** `LAPORAN_TEKNIS_ZENSE_BAB3.txt` (di root folder submission)
-- **Design Research:** `docs/design-research.md` (Awwwards health winners analysis)
-- **Prompt Library:** `docs/prompt-library.md` (vibe-coding prompts log)
+- **Vercel Demo:** https://bitsmikro.vercel.app
 
 ---
 
