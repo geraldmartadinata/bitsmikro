@@ -4,9 +4,15 @@ import type {
   PrioritizedAction,
   Severity,
 } from "../types/analysis";
+import { replyFor } from "./partner";
 
 export interface AIProvider {
   analyze(input: string): Promise<AnalysisResult>;
+}
+
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
 }
 
 const DISCLAIMER =
@@ -474,10 +480,32 @@ export class OpenAICompatibleProvider implements AIProvider {
   private readonly maxRetries = 3;
 
   async analyze(input: string): Promise<AnalysisResult> {
-    return withAiMutex(() => this.#analyzeWithRetry(input));
+    const content = await withAiMutex(() =>
+      this.#chatCompletion(
+        [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: input },
+        ],
+        { temperature: 0.4, json: true },
+      ),
+    );
+    return parseAnalysisResult(extractJson(content));
   }
 
-  async #analyzeWithRetry(input: string): Promise<AnalysisResult> {
+  async chat(system: string, messages: ChatTurn[]): Promise<string> {
+    const content = await withAiMutex(() =>
+      this.#chatCompletion(
+        [{ role: "system", content: system }, ...messages],
+        { temperature: 0.8, maxTokens: 200 },
+      ),
+    );
+    return content.trim();
+  }
+
+  async #chatCompletion(
+    messages: { role: string; content: string }[],
+    options: { temperature?: number; json?: boolean; maxTokens?: number },
+  ): Promise<string> {
     const rawKeys = (process.env.AI_API_KEY ?? "").trim();
     const keyPool = rawKeys
       .split(",")
@@ -489,6 +517,18 @@ export class OpenAICompatibleProvider implements AIProvider {
 
     if (!apiKey) {
       throw new Error("AI_API_KEY is required when AI_PROVIDER=openai-compatible");
+    }
+
+    const body: Record<string, unknown> = {
+      model,
+      messages,
+      temperature: options.temperature ?? 0.4,
+    };
+    if (options.json) {
+      body.response_format = { type: "json_object" };
+    }
+    if (options.maxTokens) {
+      body.max_tokens = options.maxTokens;
     }
 
     // Free-tier Gemini throttles at 20 req/min (rolling window). When the
@@ -507,26 +547,13 @@ export class OpenAICompatibleProvider implements AIProvider {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
         },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: input },
-          ],
-          temperature: 0.4,
-          // Ask the endpoint for strict JSON output (supported by Gemini's
-          // OpenAI-compatible API and OpenAI) — removes prose/markdown noise.
-          response_format: { type: "json_object" },
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
         lastStatus = response.status;
         if (response.status === 429) {
           const retryAfter = Number(response.headers.get("Retry-After") ?? 0);
-          // Some providers send a short Retry-After hint (<=12s): wait and
-          // retry. Gemini free-tier sends NO header with a ~60s window, so
-          // fall back to mock immediately instead of burning quota.
           if (retryAfter > 0 && retryAfter <= 12 && attempt < this.maxRetries) {
             await sleep(retryAfter * 1000 + 250);
             continue;
@@ -545,7 +572,7 @@ export class OpenAICompatibleProvider implements AIProvider {
       if (!content) {
         throw new Error("AI request returned no content");
       }
-      return parseAnalysisResult(extractJson(content));
+      return content;
     }
 
     throw new Error(`AI request failed with status ${lastStatus}`);
@@ -568,4 +595,40 @@ export async function analyzeSymptoms(
 ): Promise<AnalysisResult> {
   const resolved = provider ?? createProvider(process.env.AI_PROVIDER ?? "mock");
   return resolved.analyze(input);
+}
+
+export const RARA_SYSTEM = `Kamu Rara, pendamping sehat Zense — fokus energi, gerak, dan semangat. Bicaralah hangat, santai, dan menyemangati seperti teman baik dalam bahasa Indonesia. Balas 1-2 kalimat hangat dan singkat. Jangan pernah memberikan diagnosis medis.`;
+
+export const BIMA_SYSTEM = `Kamu Bima, pendamping sehat Zense — fokus tidur, disiplin, dan ketenangan. Bicaralah tenang, bijak, dan menenangkan dalam bahasa Indonesia. Balas 1-2 kalimat hangat dan singkat. Jangan pernah memberikan diagnosis medis.`;
+
+const GEMINI_PERSONA_IDS = ["rara", "bima"] as const;
+
+export async function chatWithAI(
+  personaId: string,
+  input: string,
+  history: ChatTurn[],
+): Promise<{ reply: string; source: "gemini" | "mock" }> {
+  const fallback = (): { reply: string; source: "mock" } => ({
+    reply: replyFor(input, personaId).text,
+    source: "mock",
+  });
+
+  const provider = process.env.AI_PROVIDER;
+  const canUseGemini =
+    provider === "openai-compatible" &&
+    (GEMINI_PERSONA_IDS as readonly string[]).includes(personaId);
+  if (!canUseGemini) return fallback();
+
+  const system = personaId === "rara" ? RARA_SYSTEM : BIMA_SYSTEM;
+  const messages: ChatTurn[] = history
+    .slice(-6)
+    .map((m) => ({ role: m.role, content: m.content }));
+  messages.push({ role: "user", content: input });
+
+  try {
+    const reply = await new OpenAICompatibleProvider().chat(system, messages);
+    return { reply, source: "gemini" };
+  } catch {
+    return fallback();
+  }
 }

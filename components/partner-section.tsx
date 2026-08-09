@@ -1,15 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
-import { Check, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import {
-  loadGroupCheckin,
   loadPartnerState,
   PERSONAS,
   personaGreeting,
   replyFor,
-  saveGroupCheckin,
   savePartnerState,
   type PartnerState,
   type Persona,
@@ -60,7 +59,7 @@ export function PartnerSection() {
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [ended, setEnded] = useState(false);
-  const [groupCount, setGroupCount] = useState(0);
+  const [lastSource, setLastSource] = useState<"gemini" | "mock" | null>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
   const persona = PERSONAS.find((p) => p.id === state.personaId) ?? null;
@@ -68,7 +67,6 @@ export function PartnerSection() {
   useEffect(() => {
     const id = window.setTimeout(() => {
       setState(loadPartnerState());
-      setGroupCount(loadGroupCheckin());
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(id);
@@ -84,13 +82,13 @@ export function PartnerSection() {
   }, [state.chat.length, typing]);
 
   function pickPersona(id: string) {
-    const existing = state.chat;
-    const chat =
-      existing.length > 0
-        ? existing
-        : [{ from: "persona" as const, text: personaGreeting(id), at: Date.now() }];
-    setState({ personaId: id, chat, streak: 0 });
+    setState({
+      personaId: id,
+      chat: [{ from: "persona", text: personaGreeting(id), at: Date.now() }],
+      streak: 0,
+    });
     setEnded(false);
+    setLastSource(null);
   }
 
   async function send() {
@@ -108,33 +106,54 @@ export function PartnerSection() {
     setInput("");
 
     setTyping(true);
-    const reply = replyFor(text, persona.id);
-    await new Promise((r) => setTimeout(r, 700 + Math.random() * 500));
+    let replyText: string;
+    let continuing: boolean;
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personaId: persona.id,
+          input: text,
+          history: state.chat.slice(-4).map((m) => ({
+            role: m.from === "user" ? "user" : "assistant",
+            content: m.text,
+          })),
+        }),
+      });
+      const data = (await response.json()) as {
+        ok: boolean;
+        reply?: string;
+        source?: "gemini" | "mock";
+      };
+      const template = replyFor(text, persona.id);
+      replyText = data.ok && data.reply ? data.reply : template.text;
+      setLastSource(data.ok ? (data.source ?? "mock") : "mock");
+      continuing = data.source === "gemini" ? true : template.continuing;
+    } catch {
+      const template = replyFor(text, persona.id);
+      replyText = template.text;
+      continuing = template.continuing;
+      setLastSource("mock");
+    }
     setTyping(false);
     setState((s) => ({
       ...s,
-      chat: [...s.chat, { from: "persona", text: reply.text, at: Date.now() }],
+      chat: [...s.chat, { from: "persona", text: replyText, at: Date.now() }],
     }));
-    if (!reply.continuing) setEnded(true);
+    if (!continuing) setEnded(true);
   }
 
   function changePartner() {
     setState({ personaId: null, chat: [], streak: 0 });
     setEnded(false);
+    setLastSource(null);
   }
 
   function restartChat() {
     setState((s) => ({ ...s, chat: [] }));
     setEnded(false);
-  }
-
-  function toggleCheckin() {
-    setGroupCount((prev) => {
-      const mine = prev > 0;
-      const next = mine ? Math.max(0, prev - 1) : Math.min(4, prev + 1);
-      saveGroupCheckin(next);
-      return next;
-    });
+    setLastSource(null);
   }
 
   return (
@@ -166,12 +185,13 @@ export function PartnerSection() {
             setInput={setInput}
             typing={typing}
             ended={ended}
+            lastSource={lastSource}
             send={send}
             onRestart={restartChat}
             onChangePartner={changePartner}
             chatRef={chatRef}
           />
-          <GroupCard count={groupCount} onToggle={toggleCheckin} />
+          <GroupEntryCard />
         </>
       )}
     </motion.section>
@@ -223,6 +243,7 @@ function Chat({
   setInput,
   typing,
   ended,
+  lastSource,
   send,
   onRestart,
   onChangePartner,
@@ -234,6 +255,7 @@ function Chat({
   setInput: (v: string) => void;
   typing: boolean;
   ended: boolean;
+  lastSource: "gemini" | "mock" | null;
   send: () => void;
   onRestart: () => void;
   onChangePartner: () => void;
@@ -286,6 +308,9 @@ function Chat({
             <TypingDots />
           </div>
         ) : null}
+        {lastSource === "mock" && !typing ? (
+          <p className="self-end text-[10px] text-muted">mode cadangan</p>
+        ) : null}
       </div>
 
       {ended ? (
@@ -333,47 +358,24 @@ function Chat({
   );
 }
 
-function GroupCard({ count, onToggle }: { count: number; onToggle: () => void }) {
-  const mine = count > 0;
+function GroupEntryCard() {
   return (
-    <motion.div variants={itemVariant} className="card-surface flex flex-col gap-4 rounded-md p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-display text-xl text-ink">Grup Bugar Pagi</h2>
-          <p className="mt-1 text-xs text-muted">
-            Hari ini: minum 8 gelas air + jalan 15 menit.
-          </p>
-        </div>
-        <div className="flex -space-x-2">
-          {PERSONAS.map((p) => (
-            <span
-              key={p.id}
-              title={p.name}
-              className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-surface text-base ${COLOR_CIRCLE[p.color] ?? COLOR_CIRCLE.ink}`}
-            >
-              {p.emoji}
-            </span>
-          ))}
-        </div>
+    <motion.div
+      variants={itemVariant}
+      className="card-surface flex flex-wrap items-center justify-between gap-3 rounded-md p-5"
+    >
+      <div>
+        <h2 className="font-display text-xl text-ink">Grup Bugar Pagi</h2>
+        <p className="mt-1 text-xs text-muted">
+          Bareng Rara, Bima, Sinta &amp; Danu — saling semangat tiap hari.
+        </p>
       </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-xs font-medium tabular-nums text-muted">
-          {count}/4 orang sudah check-in
-        </span>
-        <button
-          type="button"
-          onClick={onToggle}
-          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
-            mine
-              ? "bg-sage text-white"
-              : "border border-hairline bg-surface text-ink hover:border-sage hover:text-sage"
-          }`}
-        >
-          {mine ? <Check className="h-3.5 w-3.5" /> : null}
-          {mine ? "Sudah check-in" : "Check-in"}
-        </button>
-      </div>
+      <Link
+        href="/group"
+        className="inline-flex items-center justify-center gap-2 rounded-md bg-terracotta px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-[background-color,box-shadow] duration-200 hover:bg-terracotta-hover hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta"
+      >
+        Buka Grup
+      </Link>
     </motion.div>
   );
 }

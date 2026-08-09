@@ -2,12 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   _resetKeyRotationForTests,
   analyzeSymptoms,
+  chatWithAI,
   createProvider,
   extractJson,
   MockProvider,
   OpenAICompatibleProvider,
 } from "../ai";
 import { isRedFlag } from "../redflag";
+import { replyFor } from "../partner";
 
 afterEach(() => {
   delete process.env.AI_PROVIDER;
@@ -275,5 +277,41 @@ describe("isRedFlag", () => {
     "saya hanya ingin tahu pola hidup sehat",
   ])("returns false for a normal input: %s", (input) => {
     expect(isRedFlag(input)).toBe(false);
+  });
+});
+
+describe("chatWithAI", () => {
+  it("uses deterministic templates for every persona when AI_PROVIDER is unset", async () => {
+    delete process.env.AI_PROVIDER;
+    for (const personaId of ["rara", "bima", "sinta", "danu"]) {
+      const result = await chatWithAI(personaId, "saya susah tidur", []);
+      expect(result.source).toBe("mock");
+      expect(result.reply).toBe(replyFor("saya susah tidur", personaId).text);
+    }
+  });
+
+  it("never hits Gemini for sinta/danu even when openai-compatible is configured", async () => {
+    process.env.AI_PROVIDER = "openai-compatible";
+    for (const personaId of ["sinta", "danu"]) {
+      const result = await chatWithAI(personaId, "halo apa kabar", []);
+      expect(result.source).toBe("mock");
+      expect(result.reply).toBe(replyFor("halo apa kabar", personaId).text);
+    }
+  });
+
+  it("falls back to mock when the Gemini key is missing", async () => {
+    process.env.AI_PROVIDER = "openai-compatible";
+    delete process.env.AI_API_KEY;
+    const result = await chatWithAI("rara", "saya susah tidur", []);
+    expect(result.source).toBe("mock");
+    expect(result.reply).toBe(replyFor("saya susah tidur", "rara").text);
+  });
+
+  it("returns the same reply as replyFor for Gemini-fallback (deterministic)", async () => {
+    process.env.AI_PROVIDER = "openai-compatible";
+    delete process.env.AI_API_KEY;
+    const a = await chatWithAI("bima", "capek banget hari ini", []);
+    const b = await chatWithAI("bima", "capek banget hari ini", []);
+    expect(a).toEqual(b);
   });
 });
