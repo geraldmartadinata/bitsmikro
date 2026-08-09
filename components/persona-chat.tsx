@@ -50,6 +50,7 @@ export function PersonaChat({ persona }: { persona: Persona }) {
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [ended, setEnded] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [lastSource, setLastSource] = useState<"gemini" | "mock" | null>(null);
 
   async function send() {
@@ -65,10 +66,9 @@ export function PersonaChat({ persona }: { persona: Persona }) {
     setStreak(nextStreak);
     saveStreak(nextStreak);
     setInput("");
+    setSendError(null);
 
     setTyping(true);
-    let replyText: string;
-    let continuing: boolean;
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -87,25 +87,31 @@ export function PersonaChat({ persona }: { persona: Persona }) {
         reply?: string;
         source?: "gemini" | "mock";
       };
+      if (!response.ok || !data.ok || !data.reply) {
+        throw new Error("chat request failed");
+      }
       const template = replyFor(text, persona.id);
-      replyText = data.ok && data.reply ? data.reply : template.text;
-      setLastSource(data.ok ? (data.source ?? "mock") : "mock");
-      continuing = data.source === "gemini" ? true : template.continuing;
-    } catch {
-      const template = replyFor(text, persona.id);
-      replyText = template.text;
-      continuing = template.continuing;
-      setLastSource("mock");
-    }
-    setTyping(false);
+      setLastSource(data.source ?? "mock");
+      const continuing = data.source === "gemini" ? true : template.continuing;
 
-    const withReply: ChatMessage[] = [
-      ...withUser,
-      { from: "persona", text: replyText, at: Date.now() },
-    ];
-    setChat(withReply);
-    saveChats({ ...loadChats(), [persona.id]: withReply });
-    if (!continuing) setEnded(true);
+      const withReply: ChatMessage[] = [
+        ...withUser,
+        { from: "persona", text: data.reply, at: Date.now() },
+      ];
+      setChat(withReply);
+      saveChats({ ...loadChats(), [persona.id]: withReply });
+      if (!continuing) setEnded(true);
+    } catch {
+      // Roll back the optimistic message + streak so the same text can be retried.
+      setChat(chat);
+      saveChats({ ...loadChats(), [persona.id]: chat });
+      setStreak(streak);
+      saveStreak(streak);
+      setInput(text);
+      setSendError("Gagal kirim pesan. Coba lagi.");
+    } finally {
+      setTyping(false);
+    }
   }
 
   function restart() {
@@ -127,6 +133,7 @@ export function PersonaChat({ persona }: { persona: Persona }) {
       variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
     >
       <motion.div variants={fadeUp} className="flex flex-col gap-3">
+        <h1 className="sr-only">Obrolan dengan {persona.name}</h1>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Link
             href="/partner"
@@ -200,27 +207,37 @@ export function PersonaChat({ persona }: { persona: Persona }) {
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <Input
-              value={input}
-              maxLength={300}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !typing) send();
-              }}
-              placeholder={`Tulis ke ${persona.name}…`}
-              className="rounded-full"
-              aria-label="Pesan ke pendamping"
-            />
-            <button
-              type="button"
-              onClick={send}
-              disabled={typing || input.trim().length === 0}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-terracotta text-white transition-colors hover:bg-terracotta-hover disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Kirim pesan"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+          <div className="flex flex-col gap-2">
+            {sendError ? (
+              <p
+                role="alert"
+                className="rounded-md border border-danger/40 bg-danger/5 px-3 py-2 text-xs text-danger"
+              >
+                {sendError}
+              </p>
+            ) : null}
+            <div className="flex items-center gap-2">
+              <Input
+                value={input}
+                maxLength={300}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !typing) send();
+                }}
+                placeholder={`Tulis ke ${persona.name}…`}
+                className="rounded-full"
+                aria-label="Pesan ke pendamping"
+              />
+              <button
+                type="button"
+                onClick={send}
+                disabled={typing || input.trim().length === 0}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-terracotta text-white transition-[background-color,transform] hover:bg-terracotta-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Kirim pesan"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
 

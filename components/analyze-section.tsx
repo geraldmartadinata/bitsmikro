@@ -208,9 +208,9 @@ export function AnalyzeSection({ initialText }: { initialText?: string }) {
             variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } } }}
             className="text-center"
           >
-            <h2 className="font-display text-4xl tracking-tight sm:text-5xl">
+            <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
               Apa yang kamu rasakan?
-            </h2>
+            </h1>
             <p className="mt-3 text-muted">
               Jelaskan dengan bahasa sehari-hari — tidak perlu istilah medis.
             </p>
@@ -284,6 +284,23 @@ export function AnalyzeSection({ initialText }: { initialText?: string }) {
           ) : null}
 
           <div ref={resultsRef} className="scroll-mt-28">
+            {!loading && !result && !error ? (
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={{ hidden: {}, visible: { transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] } } }}
+                className="card-surface flex flex-col items-center gap-3 rounded-md p-10 text-center"
+              >
+                <span className="text-5xl" aria-hidden="true">
+                  🌱
+                </span>
+                <p className="font-display text-xl text-ink">Mulai dari sini</p>
+                <p className="max-w-sm text-sm leading-relaxed text-muted">
+                  Ceritakan apa yang kamu rasakan dengan bahasa sehari-hari.
+                  Analisis, rencana 7 hari, dan pendamping akan muncul di sini.
+                </p>
+              </motion.div>
+            ) : null}
             {!loading && result ? (
               <div className="flex flex-col gap-6">
                 {fellBack ? (

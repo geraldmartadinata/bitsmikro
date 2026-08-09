@@ -3,10 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
 import { Activity } from "lucide-react";
-
-const EASE: [number, number, number, number] = [0.4, 0, 0.2, 1];
 
 const NAV_LINKS = [
   { label: "Beranda", href: "/" },
@@ -27,10 +24,7 @@ export function Navbar() {
 
   return (
     <div className="fixed left-1/2 top-4 z-50 w-full max-w-5xl -translate-x-1/2 px-4 sm:px-6">
-      <motion.nav
-        initial={{ y: -24, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: EASE }}
+      <nav
         className={`flex h-14 items-center justify-between gap-3 rounded-full border px-4 backdrop-blur-md transition-[background-color,box-shadow,border-color] duration-300 sm:px-6 ${
           scrolled
             ? "border-hairline bg-cream/95 shadow-[0_6px_24px_rgba(42,43,47,0.12)]"
@@ -73,7 +67,7 @@ export function Navbar() {
         >
           Coba Sekarang
         </Link>
-      </motion.nav>
+      </nav>
     </div>
   );
 }

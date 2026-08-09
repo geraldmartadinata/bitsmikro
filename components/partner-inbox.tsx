@@ -46,7 +46,7 @@ export function PartnerInbox() {
       <motion.div variants={fadeUp} className="card-surface divide-y divide-hairline overflow-hidden rounded-md">
         <Link
           href="/group"
-          className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-surface"
+          className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-[background-color,transform] duration-200 hover:bg-surface active:scale-[0.98]"
         >
           <span className="flex -space-x-2 shrink-0">
             {PERSONAS.map((p) => (
@@ -80,7 +80,7 @@ export function PartnerInbox() {
             <Link
               key={p.id}
               href={`/partner/${p.id}`}
-              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-surface"
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-[background-color,transform] duration-200 hover:bg-surface active:scale-[0.98]"
             >
               <span
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl ${COLOR_CIRCLE[p.color] ?? COLOR_CIRCLE.ink}`}
@@ -115,7 +115,7 @@ export function PartnerInbox() {
               <Link
                 key={p.id}
                 href={`/partner/${p.id}`}
-                className="card-surface group flex items-center gap-3 rounded-md p-4"
+                className="card-surface group flex items-center gap-3 rounded-md p-4 transition-transform duration-200 active:scale-[0.98]"
               >
                 <span
                   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl ${COLOR_CIRCLE[p.color] ?? COLOR_CIRCLE.ink}`}

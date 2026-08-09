@@ -42,6 +42,11 @@ export async function POST(request: Request): Promise<Response> {
       )
     : [];
 
-  const { reply, source } = await chatWithAI(personaId, input, history);
-  return Response.json({ ok: true, reply, source });
+  try {
+    const { reply, source } = await chatWithAI(personaId, input, history);
+    return Response.json({ ok: true, reply, source });
+  } catch (err) {
+    console.error("Chat route failed", err);
+    return jsonError(500, "Terjadi kendala saat mengirim pesan. Coba lagi.");
+  }
 }

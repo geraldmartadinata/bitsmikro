@@ -280,7 +280,7 @@ export function GroupSection() {
             type="button"
             onClick={send}
             disabled={typingId !== null || input.trim().length === 0}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-terracotta text-white transition-colors hover:bg-terracotta-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-terracotta text-white transition-[background-color,transform] hover:bg-terracotta-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Kirim pesan grup"
           >
             <Send className="h-4 w-4" />

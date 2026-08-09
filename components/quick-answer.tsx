@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { isRedFlag } from "../lib/redflag";
 import type { AnalysisResult } from "../types/analysis";
@@ -37,11 +36,10 @@ function TypingDots() {
   return (
     <span className="inline-flex items-center gap-1" aria-hidden="true">
       {[0, 1, 2].map((i) => (
-        <motion.span
+        <span
           key={i}
-          className="h-1.5 w-1.5 rounded-full bg-cream/70"
-          animate={{ opacity: [0.25, 1, 0.25] }}
-          transition={{ duration: 1, repeat: Infinity, delay: i * 0.2, ease: "easeInOut" }}
+          className="h-1.5 w-1.5 animate-pulse rounded-full bg-cream/70"
+          style={{ animationDelay: `${i * 0.2}s` }}
         />
       ))}
     </span>
