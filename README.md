@@ -190,8 +190,8 @@ zip -r zense-bitsmikro-2026.zip \
 
 **Tim "."** (BINUS University)
 - **Gerald Samuel Martadinata** — Lead Developer
-- **Felicia Natania Rahardjo 2** — Project Manager and Pitcher
-- **Christian Darren Owen 3** — Subject Matter Expert and Documentation
+- **Felicia Natania Rahardjo** — Project Manager and Pitcher
+- **Christian Darren Owen** — Subject Matter Expert and Documentation
 
 ---
 
